@@ -7,7 +7,15 @@ using namespace std;
 
 class LinkedListSystem {
 private:
-    Passenger* head;
+    SNode* sHead;
+    SNode* sTail;
+
+    // DNode* dHead;
+    // DNode* dTail;
+
+    void deleteByIdSingle(string id);
+    void deleteBySeatSingle(string row, string col);
+
 public:
     LinkedListSystem();
     ~LinkedListSystem();

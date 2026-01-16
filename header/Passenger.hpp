@@ -11,11 +11,8 @@ struct Passenger {
     string seatColumn;
     string flightClass;
 
-    Passenger* next;
 
-    Passenger() {
-        next = nullptr;
-    }
+    Passenger() {}
 
     Passenger(string id, string n, string row, string col, string fClass) {
         this->passengerId = id;
@@ -23,7 +20,28 @@ struct Passenger {
         this->seatRow = row;
         this->seatColumn = col;
         this->flightClass = fClass;
+    }
+};
+
+struct SNode {
+    Passenger data;
+    SNode* next;
+
+    SNode(Passenger p) {
+        this->data = p;
         this->next = nullptr;
     }
 };
+
+// struct DNode {
+//     Passenger data;
+//     DNode* prev;
+//     DNode* next;
+
+//     DNode(Passenger p) {
+//         this->data = p;
+//         this->prev = nullptr;
+//         this->next = nullptr;
+//     }
+// };
 #endif // PASSENGER_HPP

@@ -8,16 +8,28 @@
 using namespace std;
 
 LinkedListSystem::LinkedListSystem() {
-    head = nullptr;
+    sHead = nullptr;
+    sTail = nullptr;
+    // dHead = nullptr;
+    // dTail = nullptr;
 }
 LinkedListSystem::~LinkedListSystem() {
-    Passenger* current = head;
-    while (current != nullptr) {
-        Passenger* nextNode = current->next;
-        delete current; 
-        current = nextNode;
+    
+    SNode* sCurrent = sHead;
+    while(sCurrent != nullptr){
+        SNode* nextNode = sCurrent -> next;
+        delete sCurrent;
+        sCurrent = nextNode; 
     }
     
+    //not sure if want to use
+    // DNode* dCurrent = dHead;
+    // while(dCurrent !=nullptr){
+    //     DNode* nextNode = dCurrent -> next;
+    //     delete dCurrent;
+    //     dCurrent = nextNode;
+    // }
+
     //log
     //cout << "[Memory] Linked List cleared and memory freed." << endl;
 }
@@ -40,18 +52,26 @@ void LinkedListSystem::loadFromFile(string filename) {
         getline(ss, col, ',');
         getline(ss, fClass, ',');
 
-        Passenger* newNode = new Passenger(id, name, row, col, fClass);
-        newNode->next = nullptr;
+        Passenger p(id, name, row, col, fClass);
 
-        if(head == nullptr) {
-            head = newNode;
+        SNode* newSNode = new SNode(p);
+        if (sHead == nullptr) {
+            sHead = newSNode;
+            sTail = newSNode; 
         } else {
-            Passenger* temp = head;
-            while (temp->next != nullptr) {
-                temp = temp->next;
-            }
-            temp->next = newNode;
+            sTail->next = newSNode; 
+            sTail = newSNode;       
         }
+
+        // DNode* newDNode = new DNode(p);
+        // if (dHead == nullptr) {
+        //     dHead = newDNode;
+        //     dTail = newDNode;
+        // } else {
+        //     dTail->next = newDNode; 
+        //     newDNode->prev = dTail; 
+        //     dTail = newDNode;       
+        // }
     }
     file.close();
     cout << "Loading passengers from file: " << filename << endl;
@@ -88,7 +108,7 @@ void LinkedListSystem::run() {
                 break;
             case 2:
                 // Code to delete passenger
-                cout << "Delete Passenger selected." << endl;
+                LinkedListSystem::deletePassenger();
                 waitForEnter();
                 break;
             case 3:

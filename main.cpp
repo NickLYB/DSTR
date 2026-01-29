@@ -9,7 +9,7 @@ using namespace std;
 
 int main() {
     int choice;
-    string filename = "cleaned_flight_passenger_data.csv";
+    string filename = "flight_passenger_data.csv";
 
     do{
         clearScreen();

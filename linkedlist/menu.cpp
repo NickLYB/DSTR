@@ -10,8 +10,6 @@ using namespace std;
 LinkedListSystem::LinkedListSystem() {
     sHead = nullptr;
     sTail = nullptr;
-    // dHead = nullptr;
-    // dTail = nullptr;
 }
 LinkedListSystem::~LinkedListSystem() {
     
@@ -22,16 +20,6 @@ LinkedListSystem::~LinkedListSystem() {
         sCurrent = nextNode; 
     }
     
-    //not sure if want to use
-    // DNode* dCurrent = dHead;
-    // while(dCurrent !=nullptr){
-    //     DNode* nextNode = dCurrent -> next;
-    //     delete dCurrent;
-    //     dCurrent = nextNode;
-    // }
-
-    //log
-    //cout << "[Memory] Linked List cleared and memory freed." << endl;
 }
 void LinkedListSystem::loadFromFile(string filename) {
     ifstream file(filename);
@@ -63,15 +51,6 @@ void LinkedListSystem::loadFromFile(string filename) {
             sTail = newSNode;       
         }
 
-        // DNode* newDNode = new DNode(p);
-        // if (dHead == nullptr) {
-        //     dHead = newDNode;
-        //     dTail = newDNode;
-        // } else {
-        //     dTail->next = newDNode; 
-        //     newDNode->prev = dTail; 
-        //     dTail = newDNode;       
-        // }
     }
     file.close();
     cout << "Loading passengers from file: " << filename << endl;
@@ -103,7 +82,7 @@ void LinkedListSystem::run() {
         switch(choice) {
             case 1:
                 // Code to insert passenger
-                cout << "Insert Passenger selected." << endl;
+                LinkedListSystem::insertPassenger();
                 waitForEnter();
                 break;
             case 2:
@@ -113,12 +92,12 @@ void LinkedListSystem::run() {
                 break;
             case 3:
                 // Code to search passenger
-                cout << "Search Passenger selected." << endl;
+                LinkedListSystem::searchPassenger();
                 waitForEnter();
                 break;
             case 4:
                 // Code to display manifest
-                cout << "Display Manifest selected." << endl;
+                LinkedListSystem::ManifestnSeatReport();
                 waitForEnter();
                 break;
             case 0:

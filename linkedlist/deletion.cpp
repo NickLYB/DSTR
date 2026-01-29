@@ -1,8 +1,10 @@
 #include <iostream>
+#include <chrono>
 #include "../header/Passenger.hpp"
 #include "../header/utils.hpp"
 #include "../header/linkedlist.hpp"
 using namespace std;
+using namespace std::chrono;
 
 //Will try multiple way to delete
 
@@ -14,6 +16,10 @@ void LinkedListSystem::deleteByIdSingle(string id) {
         return;
     }
 
+    auto start = high_resolution_clock::now();
+    int nodesVisited = 0;
+
+    nodesVisited++;
     if (sHead->data.passengerId == id) {
         SNode* temp = sHead;
         sHead = sHead->next;
@@ -28,7 +34,11 @@ void LinkedListSystem::deleteByIdSingle(string id) {
         }
         
         delete temp;
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+
         cout << "Passenger " << id << " deleted (was Head)." << endl;
+        cout << "[Performance] Time: " << duration.count() << " us | Nodes Visited: " << nodesVisited << endl;
         return;
     }
 
@@ -36,6 +46,7 @@ void LinkedListSystem::deleteByIdSingle(string id) {
     SNode* prev = sHead;
 
     while (current != nullptr) {
+        nodesVisited++;
         if (current->data.passengerId == id) {
             prev->next = current->next;
 
@@ -44,19 +55,38 @@ void LinkedListSystem::deleteByIdSingle(string id) {
             }
 
             delete current;
+
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+
             cout << "Passenger " << id << " deleted." << endl;
+            cout << "[Performance] Time: " << duration.count() << " us | Nodes Visited: " << nodesVisited << endl;
             return;
         }
         prev = current;
         current = current->next;
+
     }
+    
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
 
     cout << "Passenger ID " << id << " not found." << endl;
+    cout << "[Performance] Time: " << duration.count() << " us | Nodes Visited: " << nodesVisited << endl;
 }
 
 //delete by row and column
 //single linked list
 void LinkedListSystem::deleteBySeatSingle(string row, string column) {
+    if (sHead == nullptr) {
+        cout << "List is empty." << endl;
+        return;
+    }
+
+    auto start = high_resolution_clock::now();
+    int nodesVisited = 0;
+
+    nodesVisited++;
     if (sHead->data.seatRow == row && sHead->data.seatColumn == column) {
         SNode* temp = sHead;
         sHead = sHead->next; 
@@ -66,12 +96,18 @@ void LinkedListSystem::deleteBySeatSingle(string row, string column) {
         }
 
         delete temp;
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+        
         cout << "Seat " << row << column << " freed (was Head)." << endl;
+        cout << "[Performance] Time: " << duration.count() << " us | Nodes Visited: " << nodesVisited << endl;
         return;
     }
 
     SNode* current = sHead;
     while (current->next != nullptr) {
+        nodesVisited++;
         if (current->next->data.seatRow == row && current->next->data.seatColumn == column) {
             SNode* nodeToDelete = current->next;
             
@@ -82,13 +118,21 @@ void LinkedListSystem::deleteBySeatSingle(string row, string column) {
             }
 
             delete nodeToDelete;
+
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+
             cout << "Seat " << row << column << " freed." << endl;
+            cout << "[Performance] Time: " << duration.count() << " us | Nodes Visited: " << nodesVisited << endl;
             return;
         }
         current = current->next;
     }
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
 
     cout << "Seat " << row << column << " not found." << endl;
+    cout << "[Performance] Time: " << duration.count() << " us | Nodes Visited: " << nodesVisited << endl;
 }
 
 //interface function to choose deletion method

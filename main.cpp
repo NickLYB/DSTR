@@ -14,16 +14,19 @@ int main() {
     do{
         clearScreen();
 
-        cout << "Data Structure Menu" << endl;
-        cout << "-------------------" << endl;
+        cout << "==========================" << endl;
+        cout << "   Data Structure Menu    " << endl;
+        cout << "==========================" << endl;
         cout << "1. Array" << endl;
         cout << "2. Linked List" << endl;
-        cout << "-------------------" << endl;
+        cout << "--------------------------" << endl;
         cout << "0. Exit" << endl;
+        cout << "==========================" << endl;
         cout << "Select an option: ";
 
         if (!(cin >> choice)) {
             cout << "Invalid input! Please enter a number." << endl;
+            choice = -1;
             flushInput();
             waitForEnter(); 
             continue;

@@ -82,23 +82,48 @@ void ArraySystem::loadFromFile(string filename) {
     // I removed the "waitForEnter()" so it goes DIRECTLY to the menu.
     cout << "System Loaded. Accessing Array System..." << endl;
 }
+bool ArraySystem::saveToFile(string filename) {
+    ofstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Error opening file for writing: " << filename << endl;
+        return false;
+    }
+    // Write header
+    file << "PassengerID,Name,SeatRow,SeatColumn,FlightClass\n";
+    for (int i = 0; i < passengerCount; i++) {
+        Passenger* p = passengerList[i];
+        if (p != nullptr) {
+            file << p->passengerId << ","
+                 << p->name << ","
+                 << p->seatRow << ","
+                 << p->seatColumn << ","
+                 << p->flightClass << "\n";
+        }
+    }
+    file.close();
+    return true;
+}
 
 void ArraySystem::run() {
     int choice;
     do {
         clearScreen();
+        
+        cout << "==========================" << endl;
         cout << "Array System Menu" << endl;
-        cout << "-----------------" << endl;
+        cout << "==========================" << endl;
         cout << "1. Insert Passenger" << endl;
         cout << "2. Delete Passenger" << endl;
         cout << "3. Search Passenger" << endl;
         cout << "4. Display Manifest" << endl;
-        cout << "-----------------" << endl;
+        cout << "--------------------------" << endl;
         cout << "0. Back to Main Menu" << endl;
+        cout << "==========================" << endl;
         cout << "Select an option: ";
 
         if (!(cin >> choice)) {
             cout << "Invalid input!" << endl;
+            choice = -1;
             flushInput();
             waitForEnter();
             continue;
@@ -106,10 +131,10 @@ void ArraySystem::run() {
         flushInput();
 
         switch(choice) {
-            case 1: insertPassenger(); break;
-            case 2: deletePassenger(); break;
+            case 1: insertPassengerMenu(); break;
+            case 2: deletePassengerMenu(); break;
             case 3: searchPassenger(); break;
-            case 4: displayManifest(); break;
+            case 4: ManifestnSeatReport(); break;
             case 0: break;
             default: cout << "Invalid choice." << endl; waitForEnter();
         }

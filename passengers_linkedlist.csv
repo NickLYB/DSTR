@@ -9998,6 +9998,4 @@ PassengerID,Name,SeatRow,SeatColumn,FlightClass
 109997,Grace Williams,127,W,Business
 109998,Eve Jones,231,R,Economy
 109999,Grace Davis,55,R,First
-110000,test,212,s,Economy
-110001,asd,212,t,Economy
-110002,mqyvis,211,c,Economy
+110000,f,109,d,Business

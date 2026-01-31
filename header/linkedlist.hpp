@@ -16,23 +16,34 @@ private:
 
     SNode* cloneList(SNode* head);
     void deleteList(SNode* head);
+    
+    static bool compareByName(const Passenger& a, const Passenger& b);
+    static bool compareById(const Passenger& a, const Passenger& b);
 
     // Helpers for Merge Sort
-    SNode* merge(SNode* left, SNode* right);
+    SNode* merge(SNode* left, SNode* right, bool (*comp)(const Passenger&, const Passenger&));
     void split(SNode* source, SNode** front, SNode** back);
-    SNode* mergeSortRecursive(SNode* head);
+    SNode* mergeSortRecursive(SNode* head, bool (*comp)(const Passenger&, const Passenger&));
+
 
     SNode* getTail(SNode* cur);
-    SNode* insertionSortInternal(SNode* head);
+    SNode* insertionSortInternal(SNode* head, bool (*comp)(const Passenger&, const Passenger&));
 
+
+    //insert
+    void insertPassenger();
     string generateNewId();
     bool hasDigits(string str);
     void addPassengerToList(Passenger p);
+    void insertBenchmark();
 
+    //delete
     void deleteByIdSingle(string id);
     void deleteBySeatSingle(string row, string col);
-
-    void compareAndSortManifest(double& timeI, double& timeM, int& totalN, string& winner);
+    void deleteBenchmark();
+    
+    //manifest
+    void compareAndSortManifest(double& timeI, double& timeM, int& totalN, string& winner, bool (*comp)(const Passenger&, const Passenger&));
 
     void displayFinalPerformance(double tI, double tM, int totalN, string winner);
     void displayManifest();
@@ -52,16 +63,19 @@ private:
     bool linearSearchIterativeByName(SNode* head, string name, bool showResult);
     bool linearSearchIterativeByNameContains(SNode* head, string name, bool showResult);
     // Benchmarking
-    void benchmarkSearch(SNode* head, SNode* tail, string id);
+    void benchmarkSearchId(SNode* head, SNode* tail, string id);
+    void benchmarkSearchName(SNode* head, string id);
+    int linearSearchIterativeByNameContainsCount(SNode* head, const string& name);
 
 
 public:
     LinkedListSystem();
     ~LinkedListSystem();
     void loadFromFile(string filename);
+    bool saveToFile(string filename);
     void run();
 
-    void insertPassenger();
+    void insertPassengerMenu();
     void deletePassenger();
     void searchPassenger();
     void ManifestnSeatReport();

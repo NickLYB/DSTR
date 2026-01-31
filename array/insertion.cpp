@@ -1,12 +1,15 @@
 #include "../header/array.hpp"
 #include "../header/utils.hpp"
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <cctype>   // isdigit, toupper, isalpha
-#include <vector>
+#include <vector> //????
 #include <algorithm> // for max
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 // --- HELPER FUNCTIONS ---
 
@@ -40,8 +43,101 @@ string generatePassengerID(Passenger* list[], int count) {
     return to_string(maxId + 1);
 }
 
-// --- MAIN INSERT FUNCTION ---
+void ArraySystem::insertBenchmark(){
+    const int BENCHMARK_OPS = 5000;
+    
+    if(passengerCount <= 0){
+        cout <<"No Passenger Loaded" << endl;
+        waitForEnter();
+        return;
+    }
+    int remaining = MAX_PASSENGERS - passengerCount;
+    if(remaining <= 0){
+        cout << "Passenger list is full.Cannot benchmark insert." << endl;
+        waitForEnter();
+        return;
+    }
 
+    int maxId = 100000;
+    for (int i = 0; i < passengerCount; i++) {
+        if (passengerList[i] != nullptr) {
+            try {
+                int currId = stoi(passengerList[i]->passengerId);
+                if (currId > maxId) maxId = currId;
+            } catch (...) {}
+        }
+    }
+    cout << string(100, '=') << endl;
+    cout << string(25, ' ') << "BENCHMARK: ARRAY INSERT PERFORMANCE (APPEND ONLY, IN-MEMORY)\n";
+    cout << string(100, '-') << "\n";
+    cout << "Initial dataset size (loaded from CSV): " << passengerCount << "\n";
+    cout << "Capacity (MAX_ROWS*MAX_COLUMNS): " << MAX_PASSENGERS << "\n";
+    cout << "Note: CSV is NOT modified. No UI input/printing. No seat map updates.\n";
+    cout << "Insertion measured: append into passengerList[passengerCount].\n";
+    cout << string(100, '-') << endl;
+
+    cout << left
+         << setw(12) << "Ops (N)"
+         << setw(20) << "Total Time (ms)"
+         << setw(20) << "Avg Time (ns/op)"
+         << setw(20) << "Avg Steps"
+         << setw(15) << "Allocations"
+         << endl;
+    cout << string(100, '-') << endl;
+
+    auto runCase = [&](int opsRequested) {
+        int ops = opsRequested;
+        if (ops > remaining) ops = remaining; 
+
+        int originalCount = passengerCount;
+        int startIndex = passengerCount;
+
+        int allocations = 0;
+        long long totalSteps = 0;
+
+        auto start = high_resolution_clock::now();
+
+        for (int i = 0; i < ops; i++) {
+            string id = to_string(maxId + 1 + i);
+            Passenger* p = new Passenger(id, "BENCH", "1", "A", "Economy");
+
+            passengerList[passengerCount] = p;
+            passengerCount++;
+
+            allocations++;
+            totalSteps += 1;
+        }
+
+        auto stop = high_resolution_clock::now();
+        auto ms = duration_cast<milliseconds>(stop - start).count();
+        double avgNs = (ms * 1e6) / (ops > 0 ? ops : 1);
+        double avgSteps = (ops > 0) ? (double)totalSteps / ops : 0.0;
+
+        cout << left
+             << setw(12) << ops
+             << setw(20) << ms
+             << setw(20) << fixed << setprecision(2) << avgNs
+             << setw(20) << fixed << setprecision(2) << avgSteps
+             << setw(15) << allocations
+             << endl;
+
+        for (int i = startIndex; i < startIndex + ops; i++) {
+            delete passengerList[i];
+            passengerList[i] = nullptr;
+        }
+        passengerCount = originalCount;
+    };
+
+    runCase(1000);
+    runCase(5000);
+    runCase(10000);
+    runCase(50000);
+
+    cout << string(100, '=') << "\n";
+    waitForEnter();
+}
+
+// --- MAIN INSERT FUNCTION ---
 void ArraySystem::insertPassenger() {
     string name, rowStr, fClass;
     char colChar;
@@ -51,7 +147,8 @@ void ArraySystem::insertPassenger() {
     // --- STEP 1: DISPLAY EMPTY PLACES (SEPARATED BY CLASS) ---
     // Note: Total count display removed as requested.
 
-    cout << "\n=== PASSENGER INSERTION MENU ===" << endl;
+    clearScreen();
+    cout << "=== PASSENGER INSERTION MENU ===" << endl;
     cout << "(Displaying top 15 available seats per class)\n" << endl;
 
     // --- DISPLAY FIRST CLASS (Rows 1-70) ---
@@ -105,7 +202,7 @@ void ArraySystem::insertPassenger() {
     if (count == 0) cout << "(None available)";
     cout << "\n-----------------------------------------------------" << endl;
 
-    cout << "Please enter booking details below:\n" << endl;
+    cout << "Please enter booking details below:" << right << setw(15) << "[-]:Return" << endl;
 
     // --- STEP 2: INPUT DETAILS ---
 
@@ -117,6 +214,7 @@ void ArraySystem::insertPassenger() {
     while (true) {
         cout << "Enter Name: ";
         getline(cin, name);
+        if(name == "-") return;
         if (isValidName(name)) break;
         cout << "Error: Name cannot contain digits or be empty.\n";
     }
@@ -125,6 +223,8 @@ void ArraySystem::insertPassenger() {
     while (true) {
         cout << "Enter Flight Class (Economy/Business/First): ";
         getline(cin, fClass);
+        if(fClass == "-") return;
+        fClass[0] = (fClass[0]);
         if (fClass == "Economy" || fClass == "Business" || fClass == "First") {
             break;
         }
@@ -144,7 +244,7 @@ void ArraySystem::insertPassenger() {
         while (true) {
             cout << "Enter Row (" << minRow << "-" << maxRow << " for " << fClass << "): ";
             getline(cin, rowStr);
-
+            if(rowStr == "-") return;
             if (isNumeric(rowStr)) {
                 try {
                     int tempRow = stoi(rowStr);
@@ -161,6 +261,7 @@ void ArraySystem::insertPassenger() {
         while (true) {
             cout << "Enter Column (A-Z): ";
             cin >> colChar;
+            if(string(1, colChar) == "-") return;
             flushInput();
 
             colChar = toupper(colChar);
@@ -200,16 +301,65 @@ void ArraySystem::insertPassenger() {
     }
 
     // --- SUCCESS MESSAGE ---
-    cout << "\n=============================" << endl;
-    cout << "Passenger booked seat successfully !" << endl;
-    cout << endl;
-    cout << "Passenger ID: " << newP->passengerId << endl;
-    cout << "Passenger Name: " << newP->name << endl;
-    cout << "Flight Class: " << newP->flightClass << endl;
-    cout << "Seat: [" << (rIndex + 1) << " , " << actualColStr << "]" << endl;
-    cout << endl;
-    cout << "Thank you! Have a nice trip !" << endl;
-    cout << "=============================" << endl;
+        cout << "\n=============================" << endl;
+        cout << "Passenger booked seat successfully !" << endl;
+        cout << endl;
+        cout << "Passenger ID: " << newP->passengerId << endl;
+        cout << "Passenger Name: " << newP->name << endl;
+        cout << "Flight Class: " << newP->flightClass << endl;
+        cout << "Seat: [" << (rIndex + 1) << " , " << actualColStr << "]" << endl;
+        cout << endl;
+        cout << "Thank you! Have a nice trip !" << endl;
+        cout << "=============================" << endl;
 
+    if(saveToFile("flight_passenger_data.csv")) {
+        cout << "\n[Success] Reservation saved to file successfully." << endl;
+    }
+    else{
+        cout << "\n[Error] Failed to save reservation to file." << endl;
+    }
     waitForEnter();
+}
+
+//interface
+void ArraySystem::insertPassengerMenu(){
+    int choice;
+    do{
+        clearScreen();
+        cout << "=============================" << endl;
+        cout << "Insert New Passenger" << endl;
+        cout << "=============================" << endl;
+        cout << "1. Insert New Passenger" << endl;
+        cout << "2. Benchmark Insertions" << endl;
+        cout<< "------------------------------" << endl;
+        cout << "0. Back to Previous Menu." << endl;
+        cout << "=============================" << endl;
+        cout << "Select an option: ";
+
+        if (!(cin >> choice)) {
+            cout << "Invalid input! Please enter a number." << endl;
+            choice = -1;
+            flushInput();
+            waitForEnter(); 
+            continue;
+        }
+        flushInput();
+        switch(choice) {
+            case 1: {
+                insertPassenger();
+                break;
+            }
+            case 2: {
+                insertBenchmark();
+                break;
+            }
+            case 0:{
+                cout << "Returning to Previous Menu." << endl;
+                break;
+            } default:
+                cout << "Invalid choice. Please select again." << endl;
+                waitForEnter();
+                break;
+        }
+    } while (choice != 0);
 }

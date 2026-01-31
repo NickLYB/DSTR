@@ -9,7 +9,6 @@
 
 using namespace std;
 
-// --- Helper: Clone linked list for sorting ---
 SNode* LinkedListSystem::cloneList(SNode* head) {
     if (!head) return nullptr;
     SNode* newList = new SNode(head->data);
@@ -22,6 +21,7 @@ SNode* LinkedListSystem::cloneList(SNode* head) {
     }
     return newList;
 }
+
 // --- Helper: Clean up cloned lists ---
 void LinkedListSystem::deleteList(SNode* head) {
     while (head) {
@@ -31,36 +31,41 @@ void LinkedListSystem::deleteList(SNode* head) {
     }
 }
 
-// Merge Sort
-SNode* LinkedListSystem::mergeSortRecursive(SNode* head) {
-    if (head == nullptr || head->next == nullptr) return head;
-    SNode* a;
-    SNode* b;
-
-    // 1. Split the list into 'a' and 'b' halves
-    split(head, &a, &b);
-    // 2. Recursively sort the sub-lists
-    a = mergeSortRecursive(a);
-    b = mergeSortRecursive(b);
-    // 3. Merge the two sorted halves
-    return merge(a, b);
+bool LinkedListSystem::compareByName(const Passenger& a, const Passenger& b) {
+    return a.name <= b.name;
 }
-SNode* LinkedListSystem::merge(SNode* left, SNode* right) {
-    SNode* result = nullptr;
-    // Base cases
+
+bool LinkedListSystem::compareById(const Passenger& a, const Passenger& b) {
+    // String comparison works perfectly for your 6-digit IDs
+    return a.passengerId <= b.passengerId;
+}
+
+SNode* LinkedListSystem::mergeSortRecursive(SNode* head, bool (*comp)(const Passenger&, const Passenger&)) {
+    if (head == nullptr || head->next == nullptr) return head;
+
+    SNode *a, *b;
+    split(head, &a, &b);
+
+    // Pass the 'comp' function down the recursion tree
+    return merge(mergeSortRecursive(a, comp), mergeSortRecursive(b, comp), comp);
+}
+
+SNode* LinkedListSystem::merge(SNode* left, SNode* right, bool (*comp)(const Passenger&, const Passenger&)) {
     if (left == nullptr) return right;
     if (right == nullptr) return left;
 
-    // Compare names (alphabetical order)
-    if (left->data.name <= right->data.name) {
+    SNode* result = nullptr;
+    // Use the function pointer instead of a hardcoded field
+    if (comp(left->data, right->data)) {
         result = left;
-        result->next = merge(left->next, right);
+        result->next = merge(left->next, right, comp);
     } else {
         result = right;
-        result->next = merge(left, right->next);
+        result->next = merge(left, right->next, comp);
     }
     return result;
 }
+
 void LinkedListSystem::split(SNode* source, SNode** front, SNode** back) {
     SNode* fast;
     SNode* slow;
@@ -86,19 +91,20 @@ SNode* LinkedListSystem::getTail(SNode* cur) {
     while (cur != nullptr && cur->next != nullptr) cur = cur->next;
     return cur;
 }
-SNode* LinkedListSystem::insertionSortInternal(SNode* head) {
+
+SNode* LinkedListSystem::insertionSortInternal(SNode* head, bool (*comp)(const Passenger&, const Passenger&)) {
     if (head == nullptr || head->next == nullptr) return head;
+
     SNode* sorted = nullptr;
     SNode* current = head;
-    
     while (current != nullptr) {
         SNode* nextNode = current->next;
-        if (sorted == nullptr || sorted->data.name >= current->data.name) {
+        if (sorted == nullptr || comp(current->data, sorted->data)) {
             current->next = sorted;
             sorted = current;
         } else {
             SNode* temp = sorted;
-            while (temp->next != nullptr && temp->next->data.name < current->data.name) {
+            while (temp->next != nullptr && !comp(current->data, temp->next->data)) {
                 temp = temp->next;
             }
             current->next = temp->next;
@@ -151,7 +157,7 @@ void LinkedListSystem::displayFinalPerformance(double tI, double tM, int totalN,
 }
 
 // --- Performance Comparison Test ---
-void LinkedListSystem::compareAndSortManifest(double& timeI, double& timeM, int& totalN, string& winner) {
+void LinkedListSystem::compareAndSortManifest(double& timeI, double& timeM, int& totalN, string& winner, bool (*comp)(const Passenger&, const Passenger&)) {
     if (sHead == nullptr || sHead->next == nullptr) return;
 
     totalN = 0;
@@ -167,14 +173,14 @@ void LinkedListSystem::compareAndSortManifest(double& timeI, double& timeM, int&
     cout << "Testing Insertion Sort... Please wait..." << endl;
     SNode* cloneForI = cloneList(sHead);
     auto startI = chrono::high_resolution_clock::now();
-    cloneForI = insertionSortInternal(cloneForI);
+    cloneForI = insertionSortInternal(cloneForI, comp);
     auto endI = chrono::high_resolution_clock::now();
     timeI = chrono::duration<double, std::milli>(endI - startI).count();
 
     // 2. Time Actual Merge Sort on the main list
     cout << "Testing Merge Sort..." << endl;
     auto startM = chrono::high_resolution_clock::now();
-    sHead = mergeSortRecursive(sHead);
+    sHead = mergeSortRecursive(sHead, comp);
     sTail = getTail(sHead);
     auto endM = chrono::high_resolution_clock::now();
     timeM = chrono::duration<double, std::milli>(endM - startM).count();
@@ -209,16 +215,48 @@ void LinkedListSystem::displayManifest() {
     double timeI = 0, timeM = 0;
     int totalN = 0;
     string winner = "None";
-    char sortChoice;
 
-    cout << "Perform Sorting Performance Comparison before viewing? (y/n): ";
-    cin >> sortChoice;
+    int choice;
+    while(true){
+    clearScreen();
+    cout << "=============================" << endl;
+    cout << "      Sorting Options" << endl;
+    cout << "=============================" << endl;
+    cout << "1. Sort by Passenger Name" << endl;
+    cout << "2. Sort by Passenger ID" << endl;
+    cout << "3. No Sort (View as is)" << endl;
+    cout << "-----------------------------" << endl;
+    cout << "0. Back to Previous Menu" << endl;
+    cout << "=============================" << endl;
+    cout << "Choice: ";
+    if(!(cin >> choice)){
+        cout << "Invalid input! Please enter a number." << endl;
+            choice = -1;
+            flushInput();
+            waitForEnter(); 
+            continue;
+    }
     flushInput();
 
-    if (tolower(sortChoice) == 'y') {
-        compareAndSortManifest(timeI, timeM, totalN, winner);
+    if (choice == 1) {
+        compareAndSortManifest(timeI, timeM, totalN, winner, compareByName);
+        break;
+    } else if (choice == 2) {
+        compareAndSortManifest(timeI, timeM, totalN, winner, compareById);
+        break;
+    } else if (choice == 3) {
+        // No sorting, just view as-is
+        break;
+    } else if (choice == 0) {
+        return;
+    }
+    else{
+        cout << "Invalid choice. Please select again." << endl;
+        waitForEnter();
+        continue;
     }
 
+    }
     // Pagination Logic
     const int PAGE_SIZE = 20;
     int totalPassengers = 0;
@@ -369,24 +407,30 @@ void LinkedListSystem::displaySeatingChart() {
 }
 
 void LinkedListSystem::ManifestnSeatReport(){
+
     int choice;
     do{
         clearScreen();
+
         cout << "======================================" << endl;
         cout << "     Manifest & Seat Report Menu      " << endl;
         cout << "======================================" << endl;
         cout << "1. Passenger Manifest" << endl;
         cout << "2. Full Seating Chart Report" << endl;
-        cout << "0. Back to Previous Menu" << endl;
         cout << "---------------------------------------" << endl;
+        cout << "0. Back to Previous Menu" << endl;
+        cout << "======================================" << endl;
         cout << "Select an option: ";
+
         if(!(cin >> choice)){
             cout << "Invalid input! Please enter a number." << endl;
             flushInput();
+            choice = -1;
             waitForEnter();
             continue;
         }
         flushInput();
+
         switch(choice){
             case 1: {
                 displayManifest();
@@ -399,10 +443,10 @@ void LinkedListSystem::ManifestnSeatReport(){
                 waitForEnter();
                 break;
             }
-            case 0:
+            case 0:{
                 cout << "Returning to Previous Menu." << endl;
                 break;
-            default:
+            } default:
                 cout << "Invalid choice. Please select again." << endl;
                 waitForEnter();
                 break;

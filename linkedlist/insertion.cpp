@@ -4,8 +4,10 @@
 #include "../header/utils.hpp"
 #include "../header/linkedlist.hpp"
 #include <cctype> // for isdigit
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 //generate new id, auto increment
 string LinkedListSystem::generateNewId() {
@@ -45,6 +47,113 @@ void LinkedListSystem::addPassengerToList(Passenger p) {
         sTail->next = newNode;
         sTail = newNode;
     }
+}
+
+//benchmark
+static void appendInMemoryWithTail(SNode*& head, SNode*& tail, const Passenger& p) {
+    SNode* node = new SNode(p);
+    node->next = nullptr;
+
+    if (!head) {
+        head = tail = node;
+    } else {
+        tail->next = node;
+        tail = node;
+    }
+}
+void LinkedListSystem::insertBenchmark() {
+    if (!sHead) {
+        cout << "[Info] List is empty. Load data first.\n";
+        waitForEnter();
+        return;
+    }
+
+    const int OPS_1 = 1000;
+    const int OPS_2 = 5000;
+    const int OPS_3 = 10000;
+    const int OPS_4 = 50000;
+
+    auto countNodes = [](SNode* head) {
+        int count = 0;
+        SNode* current = head;
+        while (current) {
+            count++;
+            current = current->next;
+        }
+        return count;
+    };
+
+    auto getTailLocal = [](SNode* head) -> SNode* {
+        if(!head) return nullptr;
+        while (head->next) head = head->next;
+        return head;
+    };  
+
+    int datasetSize = countNodes(sHead);
+
+    clearScreen();
+    cout << string(100, '=') << endl;
+    cout << string(20, ' ') << "BENCHMARK: INSERT PERFORMANCE (APPEND ONLY, IN-MEMORY)" << endl;
+    cout << string(100, '-') << endl;
+    cout << "Initial dataset size (loaded from CSV): " << datasetSize << endl;
+    cout << "Note: CSV is NOT modified. No file I/O. No per-op printing." << endl;
+    cout << "Insertion model: append at end (tail pointer available)." << endl;
+    cout << string(100, '-') << endl;
+
+    cout << left << setw(12) << "Ops (N)" << setw(20) << "Total Time (ms)" << setw(20) << "Avg Time (ns/op)" << setw(25) << "Avg Traversal Steps" << setw(15) << "Allocations" << endl;
+    cout << string(100, '-') << endl;
+
+auto runCase = [&](int ops) {
+        SNode* head = cloneList(sHead);
+        SNode* tail = getTailLocal(head);
+
+        Passenger base = sHead->data;
+        base.name = "BENCH";
+        base.seatRow = "Z";
+        base.seatColumn = "99";
+        base.flightClass = "E";
+
+        int allocations = 0;
+        long long totalSteps = 0; // for tail append, steps ~ 1 per op
+
+        auto start = high_resolution_clock::now();
+
+        for (int i = 0; i < ops; i++) {
+            Passenger p = base;
+
+            // Optional: ensure ID differs if your code relies on unique ID string
+            // p.passengerId = to_string(100000000 + i);
+
+            appendInMemoryWithTail(head, tail, p);
+            allocations++;
+            totalSteps += 1; // no traversal, constant "work"
+        }
+
+        auto stop = high_resolution_clock::now();
+        auto ms = duration_cast<milliseconds>(stop - start).count();
+
+        double avgNs = (ms * 1e6) / ops;
+        double avgSteps = static_cast<double>(totalSteps) / ops;
+
+        cout << left
+            << setw(12) << ops
+            << setw(20) << ms
+            << setw(20) << fixed << setprecision(2) << avgNs
+            << setw(25) << fixed << setprecision(2) << avgSteps
+            << setw(15) << allocations
+            << endl;
+
+        deleteList(head);
+    };
+
+    runCase(1000);
+    runCase(5000);
+    runCase(10000);
+    runCase(50000);
+
+    cout << string(100, '=') << "\n";
+    waitForEnter();
+    
 }
 
 //main function
@@ -97,13 +206,14 @@ void LinkedListSystem::insertPassenger() {
 
         // Auto-generate ID and get Name
     string id = generateNewId();
-    cout << "[System] New Passenger ID: " << id << endl;
+    cout << "[System] New Passenger ID: "  << id << setw(15) << "[-] : quit" << endl;
 
     string name, row, col, fClass;
 
     while (true) {
         cout << "Enter Passenger Name: ";
         getline(cin, name);
+        if (name == "-") return;
         if (!name.empty() && !hasDigits(name)) break;
         cout << "Error: Name cannot contain digits or be empty." << endl;
     }
@@ -115,6 +225,7 @@ void LinkedListSystem::insertPassenger() {
     while (true) {
         cout << "\nSelect Class (First/Business/Economy): ";
         getline(cin, fClass);
+        if (fClass == "-") return;
         string norm = fClass;
         for(auto &c : norm) c = tolower(c);
 
@@ -129,6 +240,7 @@ void LinkedListSystem::insertPassenger() {
     while (true) {
         cout << "Enter Row for " << fClass << " class: ";
         getline(cin, row);
+        if (row == "-") return;
         try {
             int r = stoi(row);
             bool rangeMatch = false;
@@ -152,7 +264,7 @@ void LinkedListSystem::insertPassenger() {
     while (true) {
         cout << "Enter Column (A-" << (char)('A' + maxCols - 1) << "): ";
         getline(cin, col);
-
+        if (col  == "-") return;
         // Basic check for empty input
         if (col.empty()) {
             cout << "Error: Column cannot be empty." << endl;
@@ -189,8 +301,61 @@ void LinkedListSystem::insertPassenger() {
     for(int i = 0; i < maxRows; i++) delete[] occupied[i];
     delete[] occupied;
 
-    cout << "\n[Success] Reservation confirmed!" << endl;
-    cout << "Name: " << name << " | ID: " << id << " | Seat: " << row << col << " (" << fClass << ")" << endl;
+    if(saveToFile("flight_passenger_data.csv")) {
+        cout << "\n[Success] Reservation confirmed!" << endl;
+        cout << "Name: " << name << " | ID: " << id << " | Seat: " << row << col << " (" << fClass << ")" << endl;  
+    }
+    else{
+        cout << "\n[Error] Failed to save reservation to file." << endl;
+    }
+    
+    waitForEnter();
+    
+}
+
+//insert menu
+void LinkedListSystem::insertPassengerMenu() {
+
+    int choice;
+    do{
+        clearScreen();
+        cout << "=============================" << endl;
+        cout << "Insert New Passenger" << endl;
+        cout << "=============================" << endl;
+        cout << "1. Insert New Passenger" << endl;
+        cout << "2. Benchmark Insertions" << endl;
+        cout<< "------------------------------" << endl;
+        cout << "0. Back to Previous Menu." << endl;
+        cout << "=============================" << endl;
+        cout << "Select an option: ";
+
+        if (!(cin >> choice)) {
+            cout << "Invalid input! Please enter a number." << endl;
+            choice = -1;
+            flushInput();
+            waitForEnter(); 
+            continue;
+        }
+        flushInput();
+        switch(choice) {
+            case 1: {
+                insertPassenger();
+                break;
+            }
+            case 2: {
+                insertBenchmark();
+                break;
+            }
+            case 0:{
+                cout << "Returning to Previous Menu." << endl;
+                break;
+            } default:
+                cout << "Invalid choice. Please select again." << endl;
+                waitForEnter();
+                break;
+        }
+    } while (choice != 0);
+
 }
 
 

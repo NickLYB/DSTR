@@ -20,12 +20,11 @@ bool LinkedListSystem::linearSearchIterativeById(SNode* head, string id, bool sh
     while(current != nullptr){
         if(current ->data.passengerId == id){
             if(showResult){
-                cout << "Lineaer Search (Iterative) Result:" << endl;
-                cout << "Passenger Found: ";
-                cout << "ID: " << current->data.passengerId << " ";
-                cout << "Name: " << current->data.name << " ";
-                cout << "Seat: " << current->data.seatRow << current->data.seatColumn << " ";
-                cout << "Class: " << current->data.flightClass;
+                cout << left << setw(30) << "Linear Search (Iterative)"
+                << setw(15) << current->data.passengerId 
+                << setw(20) << current->data.name
+                << current->data.seatRow << current->data.seatColumn
+                << right << setw(15) << current->data.flightClass;
             }
             return true;
         }
@@ -43,12 +42,11 @@ bool LinkedListSystem::linearSearchRecursiveById(SNode* head, string id, bool sh
     }
     if(head->data.passengerId == id){
         if(showResult){
-            cout << "Linear Search (Recursive) Result:" << endl;
-            cout << "Passenger Found: ";
-            cout << "ID: " << head->data.passengerId << " ";
-            cout << "Name: " << head->data.name << " ";
-            cout << "Seat: " << head->data.seatRow << head->data.seatColumn << " ";
-            cout << "Class: " << head->data.flightClass;
+            cout << left << setw(30) << "Linear Search (Recursive)"
+            << setw(15) << head->data.passengerId 
+            << setw(20) << head->data.name
+            << head->data.seatRow << head->data.seatColumn
+            << right << setw(15) << head->data.flightClass;
         }
         return true;
     }
@@ -176,13 +174,11 @@ bool SkipList::searchElement(const string& key, bool showResult) const {
         current->passenger->passengerId == key) {
 
         if (showResult) {
-            cout << "Skip List Search Result:" << endl;
-            cout << "Passenger Found: ";
-            cout << "ID: " << current->passenger->passengerId << " ";
-            cout << "Name: " << current->passenger->name << " ";
-            cout << "Seat: " << current->passenger->seatRow
-                 << current->passenger->seatColumn << " ";
-            cout << "Class: " << current->passenger->flightClass;
+            cout << left << setw(30) << "Skip List Search"
+                 << setw(15) << current->passenger->passengerId 
+                 << setw(20) << current->passenger->name
+                 << current->passenger->seatRow << current->passenger->seatColumn
+                 << right << setw(15) << current->passenger->flightClass;
         }
         return true;
     }
@@ -231,19 +227,14 @@ bool LinkedListSystem::sentinelLinearSearchById(SNode* head,SNode* tail, string 
     } 
 
     if(showResult){
-        cout << "Sentinel Linear Search Result:" << endl;
-        cout << "Passenger Found: ";
-        cout << "ID: " << current->data.passengerId << " ";
-        cout << "Name: " << current->data.name << " ";
-        cout << "Seat: " << current->data.seatRow << current->data.seatColumn << " ";
-        cout << "Class: " << current->data.flightClass;
+        cout << left << setw(30) << "Sentinel Linear Search"
+        << setw(15) << current->data.passengerId 
+        << setw(20) << current->data.name
+        << current->data.seatRow << current->data.seatColumn
+        << right << setw(15) << current->data.flightClass;
     }
     return true;
 }
-
-//5. Unrolled Linked List Search (Ignore for now)
-
-
 
 //Heuristic Search (will affect list structure)
 //1. Move-to-Front Heuristic Search
@@ -336,6 +327,7 @@ bool LinkedListSystem::linearSearchIterativeByNameContains(SNode* head, string n
     bool found = false;
 
     if(showResult){
+        clearScreen();
         cout << "Search by Name (Contains) Result:" << endl;
         cout << "-------------------------------------------------------------------------" << endl;
         cout << left << setw(15) << "ID" << setw(25) << "Name" << setw(10) << "Row" << setw(13) << "Col" << setw(15) << "Class" << endl;
@@ -362,7 +354,15 @@ bool LinkedListSystem::linearSearchIterativeByNameContains(SNode* head, string n
     }
     return found;
 }
-
+int LinkedListSystem::linearSearchIterativeByNameContainsCount(SNode* head, const string& name){
+    int count = 0;
+    for(SNode* current = head; current != nullptr; current = current->next){
+        if(current->data.name.find(name) != string::npos){
+            count++;
+        }
+    }
+    return count;
+}
 //Benchmarking
 /*
 void LinkedListSystem::benchmarkSearch(SNode* head, SNode* tail, string id){
@@ -409,7 +409,7 @@ void LinkedListSystem::benchmarkSearch(SNode* head, SNode* tail, string id){
     cout << "==============================================================" << endl;
 }
 */
-void LinkedListSystem::benchmarkSearch(SNode* head, SNode* tail, string id){
+void LinkedListSystem::benchmarkSearchId(SNode* head, SNode* tail, string id){
     int iteration = 10000;
     volatile int sink = 0;
     using DoubleMs = duration<double, std::milli>;
@@ -496,21 +496,63 @@ void LinkedListSystem::benchmarkSearch(SNode* head, SNode* tail, string id){
     (void)sink;
 }
 
+void LinkedListSystem::benchmarkSearchName(SNode* head, string name){
+    int iteration = 10000;
+    volatile int sink = 0;
+    using DoubleMs = duration<double, std::milli>;
+    size_t N = 0;
+    for (SNode* cur = head; cur != nullptr; cur = cur->next) N++;
+    auto printRow = [&](const string& algo, int matches, double totalMs, size_t memBytes) {
+        double avgMs = totalMs / iteration;
+        cout << left << setw(30) << algo
+             << setw(20) << fixed << setprecision(4) << matches
+             << setw(20) << fixed << setprecision(6) << totalMs
+             << setw(20) << fixed << setprecision(6) << avgMs
+             << setw(20) << memBytes
+             << "\n";
+    };
+    clearScreen();
+    cout << "Target Name: " << name << endl;
+    cout << "=================================================================================================================" << endl;
+    cout << "                          BENCHMARK: SEARCH PERFORMANCE (" << iteration << " ITERATIONS)                         " << endl;
+    cout << "=================================================================================================================" << endl;
+    cout << left << setw(30) << "Algorithm" << setw(20) << "Matches Found" << setw(20) << "Total Time (ms)" << setw(20) << "Avg Time (ms)" << setw(20) << "Est. Memory (Stack)" << endl;
+    cout << "-----------------------------------------------------------------------------------------------------------------" << endl;
 
+    const size_t memLinearIter = sizeof(SNode*) + sizeof(int);
+    int matches = 0;
+    auto start = high_resolution_clock::now();
+    for(int i = 0; i < iteration; i++){
+        matches = linearSearchIterativeByNameContainsCount(head, name);
+        sink += matches;
+    }
+    
+    auto end = high_resolution_clock::now();
+    DoubleMs duration = end - start;
+    printRow("Linear Search (Contains)", matches, duration.count(), memLinearIter);
+    cout << "-----------------------------------------------------------------------------------------------------------------" << endl;
+    cout << "N (nodes): " << N << endl;
+    cout << "Note: Full traversal performed for every iteration." << endl;
+    cout << "=================================================================================================================" << endl;
+    (void)sink;
+}
 //interface
 void LinkedListSystem::searchPassenger() {
     int choice;
     do{
         clearScreen();
+        cout << "==========================" << endl;
         cout << "Search for Passenger" << endl;
-        cout << "---------------------------------" << endl;
-        cout << "1. Search by Passenger ID." << endl;
-        cout << "2. Search by Name." << endl;
-        cout << "---------------------------------" << endl;
+        cout << "==========================" << endl;
+        cout << "1. Passenger ID" << endl;
+        cout << "2. Name" << endl;
+        cout << "--------------------------" << endl;
         cout << "0. Back to Previous Menu." << endl;
+        cout << "==========================" << endl;
         cout << "Select an option: ";
         if (!(cin >> choice)) {
                 cout << "Invalid input! Please enter a number." << endl;
+                 choice = -1;
                 flushInput();
                 waitForEnter(); 
                 continue;
@@ -522,6 +564,15 @@ void LinkedListSystem::searchPassenger() {
                     cout << "Enter Passenger ID: ";
                     getline(cin,id);
 
+                    clearScreen();
+                    cout << "Search Results for Passenger ID: " << id << endl;
+                    cout << "=====================================================================================" << endl;
+                    cout << left << setw(30) << "Algorithm"
+                         << setw(15) << "ID"
+                         << setw(20) << "Name"
+                         << "Seat"
+                         << right << setw(15) << "Class" << endl;
+                    cout << "-------------------------------------------------------------------------------------" << endl;
                     linearSearchIterativeById(sHead, id, true);
                     cout << endl;
                     linearSearchRecursiveById(sHead, id, true);
@@ -530,12 +581,13 @@ void LinkedListSystem::searchPassenger() {
                     cout << endl;
                     sentinelLinearSearchById(sHead,sTail, id, true);
                     cout << endl;
+                    cout << "-------------------------------------------------------------------------------------" <<  endl;
                     cout << "Search Complete. Wanting to benchmark search times? (y/n): ";
                     char benchChoice;
                     cin >> benchChoice;
                     flushInput();
                     if(benchChoice == 'y' || benchChoice == 'Y') {
-                        benchmarkSearch(sHead, sTail, id);
+                        benchmarkSearchId(sHead, sTail, id);
                         waitForEnter();
                     }
                     else if(benchChoice == 'n' || benchChoice == 'N'){
@@ -552,6 +604,21 @@ void LinkedListSystem::searchPassenger() {
                     cout << "Enter Passenger Name: ";
                     getline(cin,name);
                     linearSearchIterativeByNameContains(sHead, name, true);
+                    cout << endl;
+                    cout << "Search Complete. Wanting to benchmark search times? (y/n): ";
+                    char benchChoice;
+                    cin >> benchChoice;
+                    flushInput();
+                    if(benchChoice == 'y' || benchChoice == 'Y') {
+                        benchmarkSearchName(sHead, name);
+                    }
+                    else if(benchChoice == 'n' || benchChoice == 'N'){
+                        //do nothing, just skip to end
+                    }
+                    else{
+                        cout << "Invalid choice. Returning to search menu." << endl;
+                        waitForEnter();
+                    }
                     waitForEnter();
                     break;
                 }

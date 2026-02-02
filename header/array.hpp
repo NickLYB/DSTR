@@ -26,12 +26,14 @@ private:
     void displayFinalPerformance(double tI, double tS, int totalN, string winner);
     void insertionSortByID(Passenger* arr[], int n);
     void selectionSortByID(Passenger* arr[], int n);
-
+    
     void insertPassenger();
     void insertBenchmark();
     
     void deletePassenger();
     void deleteBenchmark();
+    
+    int getMaxRow();
 
 public:
     ArraySystem();

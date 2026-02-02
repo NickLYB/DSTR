@@ -4,7 +4,6 @@
 #include <iostream>
 #include <string>
 #include <cctype>   // isdigit, toupper, isalpha
-#include <vector> //????
 #include <algorithm> // for max
 #include <chrono>
 
@@ -45,7 +44,7 @@ string generatePassengerID(Passenger* list[], int count) {
 
 void ArraySystem::insertBenchmark(){
     const int BENCHMARK_OPS = 5000;
-    
+
     if(passengerCount <= 0){
         cout <<"No Passenger Loaded" << endl;
         waitForEnter();
@@ -87,7 +86,7 @@ void ArraySystem::insertBenchmark(){
 
     auto runCase = [&](int opsRequested) {
         int ops = opsRequested;
-        if (ops > remaining) ops = remaining; 
+        if (ops > remaining) ops = remaining;
 
         int originalCount = passengerCount;
         int startIndex = passengerCount;
@@ -340,7 +339,7 @@ void ArraySystem::insertPassengerMenu(){
             cout << "Invalid input! Please enter a number." << endl;
             choice = -1;
             flushInput();
-            waitForEnter(); 
+            waitForEnter();
             continue;
         }
         flushInput();

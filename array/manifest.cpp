@@ -1,6 +1,7 @@
 #include "../header/array.hpp"
 #include "../header/utils.hpp"
 #include <iostream>
+#include <string>
 #include <iomanip>
 #include <chrono>
 #include <cmath>
@@ -13,12 +14,23 @@ using namespace std::chrono;
 // ===============================
 // Seating Chart
 // ===============================
+int ArraySystem::getMaxRow(){
+    int maxRow = 0;
+    for(int i = 0 ; i<passengerCount; i++){
+        if (stoi(passengerList[i] -> seatRow) > maxRow){
+            maxRow = stoi(passengerList[i] -> seatRow);
+        }
+    }
+    return maxRow;
+}
+
 void ArraySystem::displaySeatingChart() {
     clearScreen();
     cout << "==================== FULL SEATING CHART ====================\n";
     cout << "Legend: [X] Occupied   [.] Available" << endl;
 
-    for(int i = 0; i < MAX_ROWS; i++) {
+    int row = getMaxRow();
+    for(int i = 0; i < row; i++) {
         int rowNum = i + 1;
 
         if(rowNum == 1) {
@@ -64,8 +76,9 @@ void ArraySystem::ManifestnSeatReport() {
         cout << "=====================================\n";
         cout << "1. Passenger Manifest\n";
         cout << "2. Full Seating Chart Report\n";
-        cout << "0. Back to Previous Menu\n";
         cout << "-------------------------------------\n";
+        cout << "0. Back to Previous Menu\n";
+        cout << "=====================================\n";
         cout << "Select an option: ";
 
         if (!(cin >> choice)) {

@@ -89,10 +89,10 @@ void ArraySystem::deleteBenchmark() {
     };
 
     auto runScenario = [&](const string& name,
-                           bool delHead,
-                           bool delRandom,
-                           bool delTail,
-                           bool missScenario) {
+                        bool delHead,
+                        bool delRandom,
+                        bool delTail,
+                        bool missScenario) {
 
         backupOriginal();
 
@@ -107,56 +107,74 @@ void ArraySystem::deleteBenchmark() {
             for (int op = 0; op < opsHit; op++) {
                 if (workingCount <= 0) break;
 
-                int idx = 0;
-                if (delHead) idx = 0;
-                else if (delTail) idx = workingCount - 1;
-                else if (delRandom) idx = rand() % workingCount;
+                // 1) Choose a target pointer (this simulates "delete by ID": you have an ID, you find it)
+                Passenger* target = nullptr;
+                if (delHead) {
+                    target = passengerList[0];
+                } else if (delTail) {
+                    target = passengerList[workingCount - 1];
+                } else if (delRandom) {
+                    target = passengerList[rand() % workingCount];
+                }
 
-                // Deletion by ID in array = linear search to find element + shift to close gap
-                // If IDs are in insertion order, deleting random index simulates random ID well.
-                int steps = idx + 1;                  // nodes/items checked in a linear scan
-                int shifts = (workingCount - 1) - idx; // elements moved left
+                // 2) Linear scan to find target (REAL traversal)
+                int idx = -1;
+                for (int i = 0; i < workingCount; i++) {
+                    totalSteps++;
+                    if (passengerList[i] == target) {
+                        idx = i;
+                        break;
+                    }
+                }
 
-                totalSteps += steps;
+                if (idx == -1) continue; // should not happen in HIT
+
+                // 3) Shift to close gap (array delete behavior)
+                int shifts = (workingCount - 1) - idx;
                 totalShifts += shifts;
 
-                // Shift pointers left (in-memory only)
                 for (int i = idx; i < workingCount - 1; i++) {
                     passengerList[i] = passengerList[i + 1];
                 }
                 passengerList[workingCount - 1] = nullptr;
                 workingCount--;
 
-                frees++; // successful delete (we do NOT delete Passenger objects here)
+                frees++; // successful delete
             }
         } else {
-            // MISS = full scan every time
+            // MISS = full scan every time (as before)
             for (int op = 0; op < BENCHMARK_OPS; op++) {
-                totalSteps += workingCount; // scanned all
-                // no shifts, no frees
+                for (int i = 0; i < workingCount; i++) {
+                    totalSteps++;
+                    if (passengerList[i] == (Passenger*)0xDEADBEEF) {
+                        frees++;
+                    }
+                }
             }
         }
 
         auto stop = high_resolution_clock::now();
-        long long ms = duration_cast<milliseconds>(stop - start).count();
+
+        // Keep "ms" BUT make it a double (avoids 0ms due to integer truncation)
+        double ms = duration<double, milli>(stop - start).count();
 
         int denom = missScenario ? BENCHMARK_OPS : (opsHit > 0 ? opsHit : 1);
 
+        // Still compute ns/op from ms (as you requested)
         double avgNs = (ms * 1e6) / denom;
         double avgSteps = (double)totalSteps / denom;
         double avgShifts = (double)totalShifts / denom;
 
         cout << left
-             << setw(28) << name
-             << setw(18) << ms
-             << setw(18) << fixed << setprecision(2) << avgNs
-             << setw(22) << fixed << setprecision(2) << avgSteps
-             << setw(16) << fixed << setprecision(2) << avgShifts
-             << setw(10) << frees
-             << setw(10) << "Done"
-             << "\n";
+            << setw(28) << name
+            << setw(18) << fixed << setprecision(3) << ms
+            << setw(18) << fixed << setprecision(2) << avgNs
+            << setw(22) << fixed << setprecision(2) << avgSteps
+            << setw(16) << fixed << setprecision(2) << avgShifts
+            << setw(10) << frees
+            << setw(10) << "Done"
+            << "\n";
 
-        // Restore to exact original state
         restoreOriginal();
     };
 

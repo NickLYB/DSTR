@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <chrono>
 #include <string>
-#include <cctype>    // for isdigit
+#include <cctype>    // for isdigit, toupper
 #include <algorithm> // for std::sort, std::min
 
 using namespace std;
@@ -23,8 +23,7 @@ bool isStringNumeric(const string& str) {
     return true;
 }
 
-// 2. Binary Search (Modified for Raw Pointers)
-// Returns index in the sorted array, or -1 if not found
+// 2. Binary Search (Finds ONE match index)
 int binarySearch(Passenger** list, int low, int high, string target, int choice) {
     while (low <= high) {
         int mid = low + (high - low) / 2;
@@ -47,25 +46,52 @@ int binarySearch(Passenger** list, int low, int high, string target, int choice)
     return -1;
 }
 
-// 3. Exponential Search (Modified for Raw Pointers & Return Value)
+// 3. Exponential Search (Finds ALL matches in a sorted block)
 int runExponentialSearch(Passenger** list, int size, string target, int choice) {
-    // 1. Check first element
-    if (size == 0) return -1;
-    string firstVal = (choice == 1) ? list[0]->passengerId : list[0]->name;
+    if (size == 0) return 0;
 
-    bool match = (choice == 1) ? (firstVal == target) : (firstVal.rfind(target, 0) == 0);
-    if (match) return 0;
+    // 1. Check first element
+    string firstVal = (choice == 1) ? list[0]->passengerId : list[0]->name;
+    bool matchFirst = (choice == 1) ? (firstVal == target) : (firstVal.rfind(target, 0) == 0);
+
+    if (size == 1) return matchFirst ? 1 : 0;
 
     // 2. Find Range (1, 2, 4, 8...)
     int i = 1;
     while (i < size) {
         string currVal = (choice == 1) ? list[i]->passengerId : list[i]->name;
-        if (currVal > target) break; // Optimization: Stop if we exceeded target
+        if (currVal > target && currVal.rfind(target, 0) != 0) break;
         i = i * 2;
     }
 
-    // 3. Binary Search in found range
-    return binarySearch(list, i / 2, min(i, size - 1), target, choice);
+    // 3. Binary Search
+    int index = binarySearch(list, i / 2, min(i, size - 1), target, choice);
+
+    // 4. If not found, return 0
+    if (index == -1) return 0;
+
+    // 5. EXPAND: Count ALL matches
+    int count = 1;
+
+    // Scan Left
+    int left = index - 1;
+    while (left >= 0) {
+        string val = (choice == 1) ? list[left]->passengerId : list[left]->name;
+        bool isMatch = (choice == 1) ? (val == target) : (val.rfind(target, 0) == 0);
+        if (isMatch) { count++; left--; }
+        else break;
+    }
+
+    // Scan Right
+    int right = index + 1;
+    while (right < size) {
+        string val = (choice == 1) ? list[right]->passengerId : list[right]->name;
+        bool isMatch = (choice == 1) ? (val == target) : (val.rfind(target, 0) == 0);
+        if (isMatch) { count++; right++; }
+        else break;
+    }
+
+    return count;
 }
 
 // ==========================================
@@ -75,190 +101,212 @@ int runExponentialSearch(Passenger** list, int size, string target, int choice) 
 void ArraySystem::searchPassenger() {
     int choice;
 
-    cout << endl << "=== Search Passenger Options ===" << endl;
-    cout << "1. Search by Passenger ID" << endl;
-    cout << "2. Search by Passenger Name" << endl;
+    // --- MAIN MENU LOOP ---
+    do {
+        clearScreen();
+        cout << "=============================" << endl;
+        cout << "     Search for Passenger   " << endl;
+        cout << "=============================" << endl;
+        cout << "1. Passenger ID" << endl;
+        cout << "2. Passenger Name" << endl;
+        cout << "-----------------------------" << endl;
+        cout << "0. Back to Previous Menu." << endl;
+        cout << "=============================" << endl;
+        cout << "Select an option: ";
 
-    // --- VALIDATION 1: MENU SELECTION ---
-    while (true) {
-        cout << endl << "Select option: ";
-        if (cin >> choice) {
-            if (choice == 1 || choice == 2) {
-                flushInput();
-                break;
-            }
-        } else {
-            cin.clear();
+        // --- INPUT VALIDATION ---
+        if (!(cin >> choice)) {
+            cout << "Invalid input! Please enter a number." << endl;
+            choice = -1;
+            flushInput();
+            waitForEnter();
+            continue;
         }
         flushInput();
-        cout << "Invalid input. Please enter 1 or 2 only." << endl;
-    }
 
-    string searchTerm;
-
-    // --- VALIDATION 2: SEARCH INPUT ---
-    if (choice == 1) {
-        while (true) {
-            cout << endl << "Enter Passenger ID (6 digits): ";
-            getline(cin, searchTerm);
-            if (searchTerm.length() == 6 && isStringNumeric(searchTerm)) break;
-            cout << "Error: Invalid ID. Must be exactly 6 digits." << endl;
+        if (choice == 0) {
+            cout << "Returning to Previous Menu." << endl;
+            break;
         }
-    } else {
-        while (true) {
-            cout << endl << "Enter Passenger Name (Full Name/Part of Name): ";
-            getline(cin, searchTerm);
-            if (!searchTerm.empty()) break;
-            cout << "Error: Name cannot be empty." << endl;
-        }
-    }
 
-    // ==========================================
-    // PART 1: ALGORITHM BENCHMARKING
-    // ==========================================
+        if (choice == 1 || choice == 2) {
+            string searchTerm;
 
-    cout << endl << "Running Algorithm Speed Test..." << endl;
-
-    double durationStandard = 0.0;
-    double durationExpo = 0.0;
-
-    // ------------------------------------------
-    // METHOD 1: STANDARD LINEAR SEARCH
-    // ------------------------------------------
-    auto startStandard = high_resolution_clock::now();
-
-    for(int k=0; k<1000; k++) {
-        for (int i = 0; i < passengerCount; i++) {
-            bool match = false;
+            // --- 1. GET INPUT ---
             if (choice == 1) {
-                if (passengerList[i]->passengerId == searchTerm) match = true;
+                while (true) {
+                    cout << endl << "Enter Passenger ID (6 digits): ";
+                    getline(cin, searchTerm);
+                    if (searchTerm.length() == 6 && isStringNumeric(searchTerm)) break;
+                    cout << "Error: Invalid ID. Must be exactly 6 digits." << endl;
+                }
             } else {
-                if (passengerList[i]->name.find(searchTerm) != string::npos) match = true;
+                while (true) {
+                    cout << endl << "Enter Passenger Name (Full Name/Part of Name): ";
+                    getline(cin, searchTerm);
+                    if (!searchTerm.empty()) break;
+                    cout << "Error: Name cannot be empty." << endl;
+                }
             }
 
-            if (match && choice == 1) break;
-        }
-    }
-    auto endStandard = high_resolution_clock::now();
-    duration<double, std::milli> ms_double_std = endStandard - startStandard;
-    durationStandard = ms_double_std.count();
+            // --- 2. DISPLAY RESULTS FIRST ---
+            int foundCount = 0;
+            bool anyFound = false;
 
-    // ------------------------------------------
-    // METHOD 2: EXPONENTIAL SEARCH
-    // ------------------------------------------
-    // PREPARATION: Create Dynamic Array manually (NO VECTOR)
-    Passenger** sortedList = nullptr;
+            // Pre-scan logic
+            for (int i = 0; i < passengerCount; i++) {
+                if (choice == 1) {
+                    if (passengerList[i]->passengerId == searchTerm) { anyFound = true; break; }
+                } else {
+                    if (passengerList[i]->name.find(searchTerm) != string::npos) { anyFound = true; break; }
+                }
+            }
 
-    if (passengerCount > 0) {
-        // 1. Allocate memory
-        sortedList = new Passenger*[passengerCount];
+            if (!anyFound) {
+                 cout << "\n[Result] No record found for: " << searchTerm << endl;
+            } else {
+                cout << endl;
+                cout << "=======================================================================" << endl;
+                cout << "                     Passenger Reservation Details                 " << endl;
+                cout << "=======================================================================" << endl;
+                cout << left << setw(5)  << "No."
+                             << setw(15) << "Passenger ID"
+                             << setw(25) << "Passenger Name"
+                             << setw(15) << "Flight Class"
+                             << setw(15) << "Seat [R,C]" << endl;
+                cout << "-----------------------------------------------------------------------" << endl;
 
-        // 2. Copy data
-        for(int i = 0; i < passengerCount; i++) {
-            sortedList[i] = passengerList[i];
-        }
+                for (int i = 0; i < passengerCount; i++) {
+                    bool match = false;
+                    if (choice == 1) {
+                        if (passengerList[i]->passengerId == searchTerm) match = true;
+                    } else {
+                        if (passengerList[i]->name.find(searchTerm) != string::npos) match = true;
+                    }
 
-        // 3. Sort using pointers
-        sort(sortedList, sortedList + passengerCount, [choice](Passenger* a, Passenger* b) {
-            if (choice == 1) return a->passengerId < b->passengerId;
-            return a->name < b->name;
-        });
-    }
+                    if (match) {
+                        foundCount++;
+                        Passenger* p = passengerList[i];
+                        string seatCode = "[" + p->seatRow + "," + p->seatColumn + "]";
 
-    auto startExpo = high_resolution_clock::now();
+                        cout << left << setw(5)  << foundCount
+                             << setw(15) << p->passengerId
+                             << setw(25) << p->name.substr(0, 24)
+                             << setw(15) << p->flightClass
+                             << setw(15) << seatCode << endl;
+                    }
+                }
+                cout << "=======================================================================" << endl;
+                cout << "Total Orders: " << foundCount << endl;
+            }
 
-    volatile int sink = 0; // Prevent compiler optimization
-    // Increased loop count because Exponential is very fast
-    for(int k=0; k < 100000; k++) {
-        if (passengerCount > 0) {
-            sink += runExponentialSearch(sortedList, passengerCount, searchTerm, choice);
-        }
-    }
+            // --- 3. ASK FOR BENCHMARK ---
+            char benchChoice;
+            while (true) {
+                cout << endl << "Do you want to run a benchmark speed test? (Y/N): ";
+                cin >> benchChoice;
+                benchChoice = toupper(benchChoice);
+                flushInput();
 
-    auto endExpo = high_resolution_clock::now();
-    duration<double, std::milli> ms_double_expo = endExpo - startExpo;
-    durationExpo = ms_double_expo.count() / 100.0; // Normalize time
+                if (benchChoice == 'Y' || benchChoice == 'N') break;
+                cout << "Invalid input. Please enter 'Y' or 'N'." << endl;
+            }
 
-    // 4. CLEANUP MEMORY (Crucial for DSTR assignment)
-    if (passengerCount > 0) {
-        delete[] sortedList;
-    }
+            // --- 4. EXECUTE BENCHMARK IF 'Y' ---
+            if (benchChoice == 'Y') {
+                const int ITERATIONS = 10000;
+                using DoubleMs = duration<double, std::milli>;
+                volatile int sink = 0;
 
-    // --- Benchmark Results ---
-    cout << fixed << setprecision(4);
+                // Memory Estimations
+                const size_t memLinear = sizeof(int) + sizeof(bool);
+                const size_t memExpo = (sizeof(int) * 5) + sizeof(string);
 
-    cout << "------------------------------------------------" << endl;
-    cout << "1. Standard Linear Search    : " << durationStandard << " ms" << endl;
-    cout << "2. Exponential Search Time   : " << durationExpo << " ms (Sorted Copy)" << endl;
-    cout << "------------------------------------------------" << endl;
+                clearScreen();
 
-    // Determine Fastest
-    double minTime = durationStandard;
-    string fastMethod = "Standard Linear Search";
+                // --- PRINT HEADERS ---
+                cout << (choice == 1 ? "Target ID: " : "Target Name: ") << searchTerm << endl;
+                cout << "=================================================================================================================" << endl;
+                cout << "                                BENCHMARK: SEARCH PERFORMANCE (" << ITERATIONS << " ITERATIONS)                          " << endl;
+                cout << "=================================================================================================================" << endl;
+                cout << left << setw(30) << "Algorithm"
+                     << setw(20) << "Matches Found"
+                     << setw(20) << "Total Time (ms)"
+                     << setw(20) << "Avg Time (ms)"
+                     << setw(20) << "Est. Memory (Stack)" << endl;
+                cout << "-----------------------------------------------------------------------------------------------------------------" << endl;
 
-    if (durationExpo < minTime) {
-        minTime = durationExpo;
-        fastMethod = "Exponential Search";
-    }
+                auto printRow = [&](const string& algo, int matches, double totalMs, size_t memBytes) {
+                    double avgMs = totalMs / ITERATIONS;
+                    cout << left << setw(30) << algo
+                         << setw(20) << matches
+                         << setw(20) << fixed << setprecision(4) << totalMs
+                         << setw(20) << fixed << setprecision(6) << avgMs
+                         << setw(20) << memBytes << "\n";
+                };
 
-    cout << ">> Fastest Method: " << fastMethod << endl;
-    cout << "------------------------------------------------" << endl;
+                // ----------------------------------------------------
+                // BENCHMARK 1: STANDARD LINEAR SEARCH (RUNS FOR BOTH)
+                // ----------------------------------------------------
+                int matchCountLin = 0;
+                auto start = high_resolution_clock::now();
+                for(int k=0; k<ITERATIONS; k++) {
+                    matchCountLin = 0;
+                    for (int i = 0; i < passengerCount; i++) {
+                        if (choice == 1) {
+                            if (passengerList[i]->passengerId == searchTerm) matchCountLin++;
+                        } else {
+                            if (passengerList[i]->name.find(searchTerm) != string::npos) matchCountLin++;
+                        }
+                    }
+                    sink += matchCountLin;
+                }
+                auto end = high_resolution_clock::now();
+                DoubleMs dur = end - start;
+                printRow("Linear Search", matchCountLin, dur.count(), memLinear);
 
-    cout.unsetf(ios::fixed);
+                // ----------------------------------------------------
+                // BENCHMARK 2: EXPONENTIAL SEARCH (ONLY FOR ID SEARCH)
+                // ----------------------------------------------------
+                if (choice == 1) {
+                    Passenger** sortedList = new Passenger*[passengerCount];
+                    for(int i=0; i<passengerCount; i++) sortedList[i] = passengerList[i];
 
-    // ==========================================
-    // PART 2: DISPLAY ALL ORDERS
-    // ==========================================
-    int foundCount = 0;
+                    sort(sortedList, sortedList + passengerCount, [choice](Passenger* a, Passenger* b) {
+                        return a->passengerId < b->passengerId;
+                    });
 
-    // We scan the main list to display results
-    // (We do this check first to handle "Not Found" message)
-    bool anyFound = false;
-    for (int i = 0; i < passengerCount; i++) {
-        if (choice == 1) {
-            if (passengerList[i]->passengerId == searchTerm) { anyFound = true; break; }
+                    int matchCountExpo = 0;
+                    start = high_resolution_clock::now();
+                    for(int k=0; k<ITERATIONS; k++) {
+                         matchCountExpo = runExponentialSearch(sortedList, passengerCount, searchTerm, choice);
+                         sink += matchCountExpo;
+                    }
+                    end = high_resolution_clock::now();
+                    dur = end - start;
+                    printRow("Exponential Search", matchCountExpo, dur.count(), memExpo);
+
+                    delete[] sortedList;
+                }
+                else {
+                    // For Name search, we just skip Exponential search printing
+                    // effectively "Only search using Method 1"
+                }
+
+                // --- FOOTERS ---
+                cout << "-----------------------------------------------------------------------------------------------------------------" << endl;
+                cout << "N (nodes): " << passengerCount << endl;
+                cout << "Note: Est. Stack (bytes) counts only local stack objects (sizeof)." << endl;
+                cout << "=================================================================================================================" << endl;
+                (void)sink;
+            }
+
+            waitForEnter();
+
         } else {
-            if (passengerList[i]->name.find(searchTerm) != string::npos) { anyFound = true; break; }
+            cout << "Invalid choice. Please select again." << endl;
+            waitForEnter();
         }
-    }
 
-    if (!anyFound) {
-         cout << "\nNo record found for: " << searchTerm << endl;
-    } else {
-        cout << endl;
-        cout << "===============================================================" << endl;
-        cout << "                 Passenger Reservation Details                 " << endl;
-        cout << "===============================================================" << endl;
-        cout << left << setw(5)  << "No."
-                     << setw(15) << "Passenger ID"
-                     << setw(25) << "Passenger Name"
-                     << setw(15) << "Flight Class"
-                     << setw(15) << "Seat [R,C]" << endl;
-        cout << "---------------------------------------------------------------" << endl;
-
-        for (int i = 0; i < passengerCount; i++) {
-            bool match = false;
-            if (choice == 1) {
-                if (passengerList[i]->passengerId == searchTerm) match = true;
-            } else {
-                if (passengerList[i]->name.find(searchTerm) != string::npos) match = true;
-            }
-
-            if (match) {
-                foundCount++;
-                Passenger* p = passengerList[i];
-                string seatCode = "[" + p->seatRow + "," + p->seatColumn + "]";
-
-                cout << left << setw(5)  << foundCount
-                     << setw(15) << p->passengerId
-                     << setw(25) << p->name.substr(0, 24)
-                     << setw(15) << p->flightClass
-                     << setw(15) << seatCode << endl;
-            }
-        }
-        cout << "===============================================================" << endl;
-        cout << "Total Orders: " << foundCount << endl;
-    }
-
-    waitForEnter();
+    } while (choice != 0);
 }

@@ -202,11 +202,11 @@ void LinkedListSystem::insertPassenger() {
     suggestForRange("Business Class", 71, 210);
     suggestForRange("Economy Class", 211, 460);
 
-    cout << "\n------------------------------------------------" << endl;
+    cout << "\n-----------------------------------------------------" << endl;
 
         // Auto-generate ID and get Name
     string id = generateNewId();
-    cout << "[System] New Passenger ID: "  << id << setw(15) << "[-] : quit" << endl;
+    cout << "[System] New Passenger ID: "  << id << setw(20) << "[-] : quit" << endl;
 
     string name, row, col, fClass;
 

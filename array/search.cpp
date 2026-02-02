@@ -203,7 +203,7 @@ void ArraySystem::searchPassenger() {
             // --- 3. ASK FOR BENCHMARK ---
             char benchChoice;
             while (true) {
-                cout << endl << "Do you want to run a benchmark speed test? (Y/N): ";
+                cout << endl << "Search Complete. Wanting to benchmark search times? (Y/N): ";
                 cin >> benchChoice;
                 benchChoice = toupper(benchChoice);
                 flushInput();

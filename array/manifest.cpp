@@ -154,19 +154,34 @@ void ArraySystem::displayManifest() {
     // Sorting Options Menu
     // -------------------------------
     int sortOption;
+    do{
     clearScreen();
-    cout << "=== Sorting Options ===" << endl;
+    cout << "======================================" << endl;
+    cout << "     Manifest & Seat Report Menu      " << endl;
+    cout << "======================================" << endl;
     cout << "1. Sort by Passenger Name" << endl;
     cout << "2. Sort by Passenger ID" << endl;
-    cout << "0. No Sort (View as is)" << endl;
+    cout << "3. No Sort (View as is)" << endl;
+    cout << "--------------------------------------" << endl;
+    cout << "0. Back to Previous Menu" << endl;
+    cout << "======================================" << endl;
     cout << "Choice: ";
 
     if (!(cin >> sortOption)) {
+        cout << "Invalid input! Please enter a number." << endl;
+        sortOption = -1;
         flushInput();
-        return;
+        waitForEnter();
+        continue;
     }
-    flushInput();
+    if (sortOption > 3){
+        cout << "Invalid choice. Please select again." << endl;
+        flushInput();
+        waitForEnter();
+    }
+    } while(sortOption < 0 || sortOption > 3);
 
+    if(sortOption == 0) return;
     // -------------------------------
     // Prepare Working Copy
     // -------------------------------

@@ -14,7 +14,6 @@ using namespace std::chrono;
 //           HELPER FUNCTIONS
 // ==========================================
 
-// 1. Check if string is numeric
 bool isStringNumeric(const string& str) {
     if (str.empty()) return false;
     for (char c : str) {
@@ -23,22 +22,15 @@ bool isStringNumeric(const string& str) {
     return true;
 }
 
-// 2. Binary Search (Finds ONE match index)
-int binarySearch(Passenger** list, int low, int high, string target, int choice) {
+//Binary Search
+int binarySearch(Passenger** list, int low, int high, string target) {
     while (low <= high) {
         int mid = low + (high - low) / 2;
 
-        string midValue = (choice == 1) ? list[mid]->passengerId : list[mid]->name;
+        // Direct access to passengerId
+        if (list[mid]->passengerId == target) return mid;
 
-        // Choice 2 (Name): Check for Prefix Match (Starts with...)
-        if (choice == 2) {
-             if (midValue.rfind(target, 0) == 0) return mid;
-        } else {
-             // Choice 1 (ID): Exact Match
-             if (midValue == target) return mid;
-        }
-
-        if (midValue < target)
+        if (list[mid]->passengerId < target)
             low = mid + 1;
         else
             high = mid - 1;
@@ -46,52 +38,26 @@ int binarySearch(Passenger** list, int low, int high, string target, int choice)
     return -1;
 }
 
-// 3. Exponential Search (Finds ALL matches in a sorted block)
-int runExponentialSearch(Passenger** list, int size, string target, int choice) {
+//Exponential Search
+int runExponentialSearch(Passenger** list, int size, string target) {
     if (size == 0) return 0;
 
-    // 1. Check first element
-    string firstVal = (choice == 1) ? list[0]->passengerId : list[0]->name;
-    bool matchFirst = (choice == 1) ? (firstVal == target) : (firstVal.rfind(target, 0) == 0);
+    // 1.check first element
+    if (list[0]->passengerId == target) return 1;
+    if (size == 1) return 0;
 
-    if (size == 1) return matchFirst ? 1 : 0;
-
-    // 2. Find Range (1, 2, 4, 8...)
+    // 2.find Range (1, 2, 4, 8...)
     int i = 1;
-    while (i < size) {
-        string currVal = (choice == 1) ? list[i]->passengerId : list[i]->name;
-        if (currVal > target && currVal.rfind(target, 0) != 0) break;
+    while (i < size && list[i]->passengerId <= target) {
         i = i * 2;
     }
 
-    // 3. Binary Search
-    int index = binarySearch(list, i / 2, min(i, size - 1), target, choice);
+    // 3.binary Search
+    //search in the range [i/2, min(i, size-1)]
+    int index = binarySearch(list, i / 2, min(i, size - 1), target);
 
-    // 4. If not found, return 0
-    if (index == -1) return 0;
-
-    // 5. EXPAND: Count ALL matches
-    int count = 1;
-
-    // Scan Left
-    int left = index - 1;
-    while (left >= 0) {
-        string val = (choice == 1) ? list[left]->passengerId : list[left]->name;
-        bool isMatch = (choice == 1) ? (val == target) : (val.rfind(target, 0) == 0);
-        if (isMatch) { count++; left--; }
-        else break;
-    }
-
-    // Scan Right
-    int right = index + 1;
-    while (right < size) {
-        string val = (choice == 1) ? list[right]->passengerId : list[right]->name;
-        bool isMatch = (choice == 1) ? (val == target) : (val.rfind(target, 0) == 0);
-        if (isMatch) { count++; right++; }
-        else break;
-    }
-
-    return count;
+    // 4.return result
+    return (index != -1) ? 1 : 0;
 }
 
 // ==========================================
@@ -279,7 +245,7 @@ void ArraySystem::searchPassenger() {
                     int matchCountExpo = 0;
                     start = high_resolution_clock::now();
                     for(int k=0; k<ITERATIONS; k++) {
-                         matchCountExpo = runExponentialSearch(sortedList, passengerCount, searchTerm, choice);
+                         matchCountExpo = runExponentialSearch(sortedList, passengerCount, searchTerm);
                          sink += matchCountExpo;
                     }
                     end = high_resolution_clock::now();
@@ -287,10 +253,6 @@ void ArraySystem::searchPassenger() {
                     printRow("Exponential Search", matchCountExpo, dur.count(), memExpo);
 
                     delete[] sortedList;
-                }
-                else {
-                    // For Name search, we just skip Exponential search printing
-                    // effectively "Only search using Method 1"
                 }
 
                 // --- FOOTERS ---

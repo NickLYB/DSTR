@@ -211,7 +211,7 @@ void ArraySystem::insertPassenger() {
 
     // 2. PASSENGER NAME
     while (true) {
-        cout << "Enter Name: ";
+        cout << "Enter Passenger Name: ";
         getline(cin, name);
         if(name == "-") return;
         if (isValidName(name)) break;
@@ -290,8 +290,9 @@ void ArraySystem::insertPassenger() {
 
     string actualColStr(1, (char)('A' + cIndex));
     Passenger* newP = new Passenger(id, name, rowStr, actualColStr, fClass);
-    seats[rIndex][cIndex] = newP;
+    seats[rIndex][cIndex] = newP; //assign to 2D array
 
+    //assign to 1D arrray
     if (passengerCount < (MAX_ROWS * MAX_COLUMNS)) {
         passengerList[passengerCount] = newP;
         passengerCount++;
@@ -301,14 +302,13 @@ void ArraySystem::insertPassenger() {
 
     // --- SUCCESS MESSAGE ---
         cout << "\n=============================" << endl;
-        cout << "Passenger booked seat successfully !" << endl;
+        cout << " Reservation successfully !" << endl;
         cout << endl;
         cout << "Passenger ID: " << newP->passengerId << endl;
         cout << "Passenger Name: " << newP->name << endl;
         cout << "Flight Class: " << newP->flightClass << endl;
         cout << "Seat: [" << (rIndex + 1) << " , " << actualColStr << "]" << endl;
         cout << endl;
-        cout << "Thank you! Have a nice trip !" << endl;
         cout << "=============================" << endl;
 
     if(saveToFile("flight_passenger_data.csv")) {

@@ -3,8 +3,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 // Constructor
 ArraySystem::ArraySystem() {
@@ -46,6 +48,7 @@ void ArraySystem::loadFromFile(string filename) {
     string line;
     getline(file, line); // Skip header
 
+    auto start = high_resolution_clock::now();
     while (getline(file, line)) {
         stringstream ss(line);
         string id, name, rowStr, colStr, fClass;
@@ -76,11 +79,23 @@ void ArraySystem::loadFromFile(string filename) {
             continue;
         }
     }
+    
+    auto stop = high_resolution_clock::now();
+    auto ms = duration_cast<milliseconds>(stop - start).count();
     file.close();
 
     // --- CHANGE IS HERE ---
     // I removed the "waitForEnter()" so it goes DIRECTLY to the menu.
     cout << "System Loaded. Accessing Array System..." << endl;
+    cout << "Passenger object size: " << sizeof(Passenger) << " bytes" << endl;
+    cout << "Estimated heap for passengers: " << (size_t)passengerCount * sizeof(Passenger) << " bytes" << endl;
+
+    cout << "Pointer table (passengerList): " << sizeof(passengerList) << " bytes" << endl;
+    cout << "Pointer table (seats): " << sizeof(seats) << " bytes" << endl;
+
+    cout << "Estimated total (minimum): " << sizeof(passengerList) + sizeof(seats) + (size_t)passengerCount * sizeof(Passenger) << " bytes" <<  endl;
+    cout << "Loading time: " << ms << "ms " << endl;
+    waitForEnter();
 }
 bool ArraySystem::saveToFile(string filename) {
     ofstream file(filename);

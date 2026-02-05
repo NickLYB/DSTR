@@ -4,8 +4,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 LinkedListSystem::LinkedListSystem() {
     sHead = nullptr;
@@ -30,6 +32,8 @@ void LinkedListSystem::loadFromFile(string filename) {
     string line;
     getline(file, line); // Skip header line
 
+    size_t passengerCount = 0;
+    auto start = high_resolution_clock::now();
     while (getline(file, line)) {
         stringstream ss(line);
         string id, name, row, col, fClass;
@@ -50,11 +54,23 @@ void LinkedListSystem::loadFromFile(string filename) {
             sTail->next = newSNode; 
             sTail = newSNode;       
         }
+        passengerCount++;
 
     }
+    auto stop = high_resolution_clock::now();
+    auto ms = duration_cast<milliseconds>(stop - start).count();
     file.close();
     cout << endl;
     cout << "Loading passengers from file: " << filename << endl;
+    cout << "Passengers loaded into Linkedlist successfully." << endl;
+
+    size_t nodeHeap = passengerCount * sizeof(SNode);
+    cout << "System Loaded. Accessing Linked List System..." << endl;
+    cout << "Passenger object size: " << sizeof(Passenger) << " bytes" << endl;
+    cout << "SNode size: " << sizeof(SNode) << " bytes" << endl;
+    cout << "Estimated heap for nodes: " << nodeHeap << " bytes" << endl;
+    cout << "Estimated total (minimum): " << nodeHeap << " bytes" << endl;
+    cout << "Loading time: " << ms << " ms" << endl;
     cout << "Passengers loaded into Linkedlist successfully." << endl;
     waitForEnter();
 }

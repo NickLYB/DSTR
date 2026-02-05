@@ -57,6 +57,7 @@ void ArraySystem::deleteBenchmark() {
     cout << "Ops used for HIT scenarios (cannot exceed size): " << opsHit << "\n";
     cout << "Note: CSV is NOT modified. No seat map updates. No user input. No file I/O.\n";
     cout << "Note: Uses passengerList free slots as backup (array-only).\n";
+    cout << "Note: HIT simulates delete-by-ID = linear scan by passengerId then shifting.\n";
     cout << string(120, '-') << "\n";
 
     cout << left
@@ -89,10 +90,10 @@ void ArraySystem::deleteBenchmark() {
     };
 
     auto runScenario = [&](const string& name,
-                        bool delHead,
-                        bool delRandom,
-                        bool delTail,
-                        bool missScenario) {
+                           bool delHead,
+                           bool delRandom,
+                           bool delTail,
+                           bool missScenario) {
 
         backupOriginal();
 
@@ -107,27 +108,30 @@ void ArraySystem::deleteBenchmark() {
             for (int op = 0; op < opsHit; op++) {
                 if (workingCount <= 0) break;
 
-                // 1) Choose a target pointer (this simulates "delete by ID": you have an ID, you find it)
-                Passenger* target = nullptr;
+                // 1) Choose a target ID (simulates: user has an ID and wants to delete it)
+                string targetId;
                 if (delHead) {
-                    target = passengerList[0];
+                    // choose ID of element currently at head
+                    targetId = passengerList[0]->passengerId;
                 } else if (delTail) {
-                    target = passengerList[workingCount - 1];
+                    // choose ID of element currently at tail
+                    targetId = passengerList[workingCount - 1]->passengerId;
                 } else if (delRandom) {
-                    target = passengerList[rand() % workingCount];
+                    // choose ID of a random element in current working array
+                    targetId = passengerList[rand() % workingCount]->passengerId;
                 }
 
-                // 2) Linear scan to find target (REAL traversal)
+                // 2) Linear scan to find by ID (REAL traversal work)
                 int idx = -1;
                 for (int i = 0; i < workingCount; i++) {
                     totalSteps++;
-                    if (passengerList[i] == target) {
+                    if (passengerList[i] && passengerList[i]->passengerId == targetId) {
                         idx = i;
                         break;
                     }
                 }
 
-                if (idx == -1) continue; // should not happen in HIT
+                if (idx == -1) continue; // should not happen for HIT
 
                 // 3) Shift to close gap (array delete behavior)
                 int shifts = (workingCount - 1) - idx;
@@ -139,17 +143,21 @@ void ArraySystem::deleteBenchmark() {
                 passengerList[workingCount - 1] = nullptr;
                 workingCount--;
 
-                frees++; // successful delete
+                frees++; // successful delete (removal from array)
             }
         } else {
-            // MISS = full scan every time (as before)
+            // MISS = full scan every time (ID not found), no deletion, no shifts
+            const string missId = "NON_EXISTENT_ID_999999";
             for (int op = 0; op < BENCHMARK_OPS; op++) {
+                int idx = -1;
                 for (int i = 0; i < workingCount; i++) {
                     totalSteps++;
-                    if (passengerList[i] == (Passenger*)0xDEADBEEF) {
-                        frees++;
+                    if (passengerList[i] && passengerList[i]->passengerId == missId) {
+                        idx = i;
+                        break; // should never happen
                     }
                 }
+                (void)idx; // silence unused warning if any
             }
         }
 
@@ -161,19 +169,19 @@ void ArraySystem::deleteBenchmark() {
         int denom = missScenario ? BENCHMARK_OPS : (opsHit > 0 ? opsHit : 1);
 
         // Still compute ns/op from ms (as you requested)
-        double avgNs = (ms * 1e6) / denom;
+        double avgNs = (ms * 1e6) / denom;       // 1 ms = 1e6 ns
         double avgSteps = (double)totalSteps / denom;
         double avgShifts = (double)totalShifts / denom;
 
         cout << left
-            << setw(28) << name
-            << setw(18) << fixed << setprecision(3) << ms
-            << setw(18) << fixed << setprecision(2) << avgNs
-            << setw(22) << fixed << setprecision(2) << avgSteps
-            << setw(16) << fixed << setprecision(2) << avgShifts
-            << setw(10) << frees
-            << setw(10) << "Done"
-            << "\n";
+             << setw(28) << name
+             << setw(18) << fixed << setprecision(3) << ms
+             << setw(18) << fixed << setprecision(2) << avgNs
+             << setw(22) << fixed << setprecision(2) << avgSteps
+             << setw(16) << fixed << setprecision(2) << avgShifts
+             << setw(10) << frees
+             << setw(10) << "Done"
+             << "\n";
 
         restoreOriginal();
     };
@@ -186,6 +194,7 @@ void ArraySystem::deleteBenchmark() {
     cout << string(120, '=') << "\n";
     waitForEnter();
 }
+
 void ArraySystem::deletePassenger() {
     if (passengerCount == 0) {
         cout << "\n[Delete] No passengers to delete.\n";

@@ -9,6 +9,7 @@
 
 using namespace std;
 
+// Creates a completely new copy of the linked list to avoid modifying the original during tests
 SNode* LinkedListSystem::cloneList(SNode* head) {
     if (!head) return nullptr;
     SNode* newList = new SNode(head->data);
@@ -22,7 +23,7 @@ SNode* LinkedListSystem::cloneList(SNode* head) {
     return newList;
 }
 
-// --- Helper: Clean up cloned lists ---
+// Clean up cloned lists
 void LinkedListSystem::deleteList(SNode* head) {
     while (head) {
         SNode* temp = head;
@@ -31,31 +32,36 @@ void LinkedListSystem::deleteList(SNode* head) {
     }
 }
 
+// Logic for alphabetical sorting by Name
 bool LinkedListSystem::compareByName(const Passenger& a, const Passenger& b) {
     return a.name <= b.name;
 }
 
+// Logic for numerical sorting by ID (using string comparison for fixed-length IDs)
 bool LinkedListSystem::compareById(const Passenger& a, const Passenger& b) {
-    // String comparison works perfectly for your 6-digit IDs
+    // String comparison works perfectly for 6-digit IDs
     return a.passengerId <= b.passengerId;
 }
 
+// --- Merge Sort Implementation (Recursive) ---
+// Divide and Conquer approach: splits list until single nodes, then merges them back in order
 SNode* LinkedListSystem::mergeSortRecursive(SNode* head, bool (*comp)(const Passenger&, const Passenger&)) {
     if (head == nullptr || head->next == nullptr) return head;
 
     SNode *a, *b;
-    split(head, &a, &b);
+    split(head, &a, &b);  // Split the list into two halves
 
-    // Pass the 'comp' function down the recursion tree
+    // Recursively sort and merge the halves
     return merge(mergeSortRecursive(a, comp), mergeSortRecursive(b, comp), comp);
 }
 
+// Merges two sorted sub-lists into a single sorted list
 SNode* LinkedListSystem::merge(SNode* left, SNode* right, bool (*comp)(const Passenger&, const Passenger&)) {
     if (left == nullptr) return right;
     if (right == nullptr) return left;
 
     SNode* result = nullptr;
-    // Use the function pointer instead of a hardcoded field
+
     if (comp(left->data, right->data)) {
         result = left;
         result->next = merge(left->next, right, comp);
@@ -66,6 +72,7 @@ SNode* LinkedListSystem::merge(SNode* left, SNode* right, bool (*comp)(const Pas
     return result;
 }
 
+// Uses the slow/fast pointer strategy to find the middle of the list
 void LinkedListSystem::split(SNode* source, SNode** front, SNode** back) {
     SNode* fast;
     SNode* slow;
@@ -83,10 +90,11 @@ void LinkedListSystem::split(SNode* source, SNode** front, SNode** back) {
 
     *front = source;
     *back = slow->next;
-    slow->next = nullptr; // Break the list into two
+    slow->next = nullptr; // Terminate the first half
 }
 
-// Insertion Sort
+// --- Insertion Sort Implementation ---
+// Builds a sorted list one node at a time by inserting them into the correct position
 SNode* LinkedListSystem::getTail(SNode* cur) {
     while (cur != nullptr && cur->next != nullptr) cur = cur->next;
     return cur;
@@ -99,10 +107,12 @@ SNode* LinkedListSystem::insertionSortInternal(SNode* head, bool (*comp)(const P
     SNode* current = head;
     while (current != nullptr) {
         SNode* nextNode = current->next;
+        // Insert at the very beginning
         if (sorted == nullptr || comp(current->data, sorted->data)) {
             current->next = sorted;
             sorted = current;
         } else {
+            // Traverse the sorted part to find the insertion point
             SNode* temp = sorted;
             while (temp->next != nullptr && !comp(current->data, temp->next->data)) {
                 temp = temp->next;
@@ -157,6 +167,7 @@ void LinkedListSystem::displayFinalPerformance(double tI, double tM, int totalN,
 }
 
 // --- Performance Comparison Test ---
+// Clones the list to run a "race" between Insertion and Merge sort to pick the fastest one
 void LinkedListSystem::compareAndSortManifest(double& timeI, double& timeM, int& totalN, string& winner, bool (*comp)(const Passenger&, const Passenger&)) {
     if (sHead == nullptr || sHead->next == nullptr) return;
 
@@ -205,6 +216,7 @@ void LinkedListSystem::compareAndSortManifest(double& timeI, double& timeM, int&
     waitForEnter();
 }
 
+// Displays 20 records at a time and allows the user to navigate the sorted data
 void LinkedListSystem::displayManifest() {
     if (sHead == nullptr) {
         cout << "The flight manifest is currently empty." << endl;
@@ -233,7 +245,7 @@ void LinkedListSystem::displayManifest() {
         cout << "Invalid input! Please enter a number." << endl;
             choice = -1;
             flushInput();
-            waitForEnter(); 
+            waitForEnter();
             continue;
     }
     flushInput();
@@ -453,4 +465,3 @@ void LinkedListSystem::ManifestnSeatReport(){
         }
     } while (choice != 0);
 }
-

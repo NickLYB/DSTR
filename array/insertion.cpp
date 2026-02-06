@@ -3,15 +3,14 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
-#include <cctype>   // isdigit, toupper, isalpha
-#include <algorithm> // for max
+#include <cctype>
+#include <algorithm>
 #include <chrono>
 
 using namespace std;
 using namespace std::chrono;
 
-// --- HELPER FUNCTIONS ---
-
+// helper
 bool isNumeric(const string& str) {
     if (str.empty()) return false;
     for (char c : str) {
@@ -20,6 +19,7 @@ bool isNumeric(const string& str) {
     return true;
 }
 
+// valid name is no digits
 bool isValidName(const string& str) {
     if (str.empty()) return false;
     for (char c : str) {
@@ -42,15 +42,19 @@ string generatePassengerID(Passenger* list[], int count) {
     return to_string(maxId + 1);
 }
 
+// insertion benchmark
 void ArraySystem::insertBenchmark(){
     const int BENCHMARK_OPS = 5000;
 
+    // ensure passenger exist
     if(passengerCount <= 0){
         cout <<"No Passenger Loaded" << endl;
         waitForEnter();
         return;
     }
+
     int remaining = MAX_PASSENGERS - passengerCount;
+    // check remaining array capacity
     if(remaining <= 0){
         cout << "Passenger list is full.Cannot benchmark insert." << endl;
         waitForEnter();
@@ -84,6 +88,7 @@ void ArraySystem::insertBenchmark(){
          << endl;
     cout << string(100, '-') << endl;
 
+    // lambda function to run one benchmark case
     auto runCase = [&](int opsRequested) {
         int ops = opsRequested;
         if (ops > remaining) ops = remaining;
@@ -96,6 +101,7 @@ void ArraySystem::insertBenchmark(){
 
         auto start = high_resolution_clock::now();
 
+        // directly append passenger into array
         for (int i = 0; i < ops; i++) {
             string id = to_string(maxId + 1 + i);
             Passenger* p = new Passenger(id, "BENCH", "1", "A", "Economy");
@@ -127,6 +133,7 @@ void ArraySystem::insertBenchmark(){
         passengerCount = originalCount;
     };
 
+    // numbers of running benchmark
     runCase(1000);
     runCase(5000);
     runCase(10000);
@@ -136,21 +143,18 @@ void ArraySystem::insertBenchmark(){
     waitForEnter();
 }
 
-// --- MAIN INSERT FUNCTION ---
+
 void ArraySystem::insertPassenger() {
     string name, rowStr, fClass;
     char colChar;
     int rIndex = -1;
     int cIndex = -1;
 
-    // --- STEP 1: DISPLAY EMPTY PLACES (SEPARATED BY CLASS) ---
-    // Note: Total count display removed as requested.
-
+    // 1.display 15 available seats
     clearScreen();
     cout << "=== PASSENGER INSERTION MENU ===" << endl;
     cout << "(Displaying top 15 available seats per class)\n" << endl;
 
-    // --- DISPLAY FIRST CLASS (Rows 1-70) ---
     cout << "--- First Class (Rows 1-70) ---" << endl;
     int count = 0;
     for (int i = 0; i < 70 && i < MAX_ROWS; i++) {
@@ -167,7 +171,6 @@ void ArraySystem::insertPassenger() {
     if (count == 0) cout << "(None available)";
     cout << "\n" << endl;
 
-    // --- DISPLAY BUSINESS CLASS (Rows 71-210) ---
     cout << "--- Business Class (Rows 71-210) ---" << endl;
     count = 0;
     for (int i = 70; i < 210 && i < MAX_ROWS; i++) {
@@ -184,7 +187,6 @@ void ArraySystem::insertPassenger() {
     if (count == 0) cout << "(None available)";
     cout << "\n" << endl;
 
-    // --- DISPLAY ECONOMY CLASS (Rows 211-460) ---
     cout << "--- Economy Class (Rows 211-460) ---" << endl;
     count = 0;
     for (int i = 210; i < MAX_ROWS; i++) {
@@ -203,13 +205,10 @@ void ArraySystem::insertPassenger() {
 
     cout << "Please enter booking details below:" << right << setw(15) << "[-]:Return" << endl;
 
-    // --- STEP 2: INPUT DETAILS ---
-
-    // 1. AUTO-GENERATE ID
+    // 2.enter details
     string id = generatePassengerID(passengerList, passengerCount);
     cout << "Generated Passenger ID: " << id << endl;
 
-    // 2. PASSENGER NAME
     while (true) {
         cout << "Enter Passenger Name: ";
         getline(cin, name);
@@ -218,7 +217,6 @@ void ArraySystem::insertPassenger() {
         cout << "Error: Name cannot contain digits or be empty.\n";
     }
 
-    // 3. FLIGHT CLASS
     while (true) {
         cout << "Enter Flight Class (Economy/Business/First): ";
         getline(cin, fClass);
@@ -230,16 +228,13 @@ void ArraySystem::insertPassenger() {
         cout << "Error: Must enter 'Economy', 'Business', or 'First' exactly.\n";
     }
 
-    // --- STEP 3: SEAT SELECTION LOOP (Repeat if occupied) ---
-
-    // Determine Row Limits based on Class
+    // check valid row range based on class
     int minRow, maxRow;
     if (fClass == "First") { minRow = 1; maxRow = 70; }
     else if (fClass == "Business") { minRow = 71; maxRow = 210; }
     else { minRow = 211; maxRow = 460; }
 
     while (true) {
-        // 4. ROW VALIDATION
         while (true) {
             cout << "Enter Row (" << minRow << "-" << maxRow << " for " << fClass << "): ";
             getline(cin, rowStr);
@@ -256,7 +251,6 @@ void ArraySystem::insertPassenger() {
             cout << "Error: For " << fClass << ", row must be between " << minRow << " and " << maxRow << ".\n";
         }
 
-        // 5. COLUMN VALIDATION
         while (true) {
             cout << "Enter Column (A-Z): ";
             cin >> colChar;
@@ -272,22 +266,18 @@ void ArraySystem::insertPassenger() {
             cout << "Error: Column must be between A and Z.\n";
         }
 
-        // 6. CHECK AVAILABILITY
+        // check seat availability
         if (seats[rIndex][cIndex] != nullptr) {
-            // Seat is occupied -> Error message and Loop continues
             cout << "\n=============================" << endl;
             cout << "Error: Seat " << (rIndex + 1) << (char)('A' + cIndex) << " is ALREADY OCCUPIED." << endl;
             cout << "Please enter a different seat (Row & Column)." << endl;
             cout << "=============================\n" << endl;
-            // The loop will restart, asking for Row and Column again
         } else {
-            // Seat is empty -> Break loop
             break;
         }
     }
 
-    // --- STEP 4: INSERT PASSENGER ---
-
+    // insert passenger
     string actualColStr(1, (char)('A' + cIndex));
     Passenger* newP = new Passenger(id, name, rowStr, actualColStr, fClass);
     seats[rIndex][cIndex] = newP; //assign to 2D array
@@ -300,7 +290,6 @@ void ArraySystem::insertPassenger() {
         cout << "Warning: Passenger list full, added to seat map only." << endl;
     }
 
-    // --- SUCCESS MESSAGE ---
         cout << "\n=============================" << endl;
         cout << " Reservation successfully !" << endl;
         cout << endl;
@@ -320,7 +309,6 @@ void ArraySystem::insertPassenger() {
     waitForEnter();
 }
 
-//interface
 void ArraySystem::insertPassengerMenu(){
     int choice;
     do{

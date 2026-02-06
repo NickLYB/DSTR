@@ -12,7 +12,6 @@
 using namespace std;
 using namespace std::chrono;
 
-// Read-Only Search
 //1. Linear Search (Iterative)
 bool LinkedListSystem::linearSearchIterativeById(SNode* head, string id, bool showResult){
     SNode* current = head;
@@ -54,6 +53,7 @@ bool LinkedListSystem::linearSearchRecursiveById(SNode* head, string id, bool sh
 }
 
 //3. Skip List Search (need sorted list)
+// structure
 class skipListNode {
 public:
     Passenger* passenger;
@@ -63,33 +63,35 @@ public:
     skipListNode(Passenger* p, int level);
     ~skipListNode();
 };
-skipListNode::skipListNode(Passenger* p, int level) {
+skipListNode::skipListNode(Passenger* p, int level) { //constructor
     passenger = p;
     nodeLevel = level;
     forward = new skipListNode*[level + 1];
     memset(forward, 0, sizeof(skipListNode*) * (level + 1));
 }
-skipListNode::~skipListNode() {
+skipListNode::~skipListNode() { //destructor
     delete[] forward;
 }
+// class/interface
 class SkipList {
 private:
-    int MAXLVL;
-    float P;
-    int level;
-    skipListNode* header;
+    int MAXLVL; 
+    float P; //probability used to general random level
+    int level; // higest level in list
+    skipListNode* header; // head node
 
-    int randomLevel();
-    skipListNode* createNode(Passenger* p, int nodeLevel);
+    int randomLevel(); //generate random level for new node insertion
+    skipListNode* createNode(Passenger* p, int nodeLevel); //allocation a new node with given level
 
 public:
     SkipList(int maxlvl = 16, float prob = 0.5f);
     ~SkipList();
 
-    void insertElement(Passenger* p);
-    bool searchElement(const string& id, bool showResult) const;
+    void insertElement(Passenger* p); //load passenger to skip list
+    bool searchElement(const string& id, bool showResult) const; //search passenger by id
 };
-SkipList::SkipList(int maxlvl, float prob) {
+//construction
+SkipList::SkipList(int maxlvl, float prob) { //constructor
     MAXLVL = maxlvl;
     P = prob;
     level = 0;
@@ -102,7 +104,7 @@ SkipList::SkipList(int maxlvl, float prob) {
 
     header = new skipListNode(nullptr, MAXLVL); // dummy smallest
 }
-SkipList::~SkipList() {
+SkipList::~SkipList() { //destructor
     skipListNode* cur = header->forward[0];
     while (cur != nullptr) {
         skipListNode* nxt = cur->forward[0];
@@ -111,21 +113,25 @@ SkipList::~SkipList() {
     }
     delete header;
 }
-int SkipList::randomLevel() {
+// helpers
+int SkipList::randomLevel() { //generate random height for a new node
     int lvl = 0;
     while (((float)rand() / RAND_MAX) < P && lvl < MAXLVL) {
         lvl++;
     }
     return lvl;
 }
-skipListNode* SkipList::createNode(Passenger* p, int nodeLevel) {
+skipListNode* SkipList::createNode(Passenger* p, int nodeLevel) { //create a new node with nodelevel forward pointer
     return new skipListNode(p, nodeLevel);
 }
-void SkipList::insertElement(Passenger* p) {
-    // ensure MAXLVL <= 63 OR increase this array size
-    skipListNode* update[64];
+// operations
+void SkipList::insertElement(Passenger* p) { //insert passenger into skiplist
+    
+    
+    skipListNode* update[64]; //stores the last node before insertion at each level
     skipListNode* current = header;
 
+    //traverse from highest level down to level 0 tofind insert position
     for (int i = level; i >= 0; i--) {
         while (current->forward[i] != nullptr &&
                current->forward[i]->passenger->passengerId < p->passengerId) {
@@ -134,21 +140,26 @@ void SkipList::insertElement(Passenger* p) {
         update[i] = current;
     }
 
+    // Move to possible duplicate at level 0
     current = current->forward[0];
 
+    //terminate if duplicate key and opdate passenger pointer
     if (current != nullptr &&
         current->passenger->passengerId == p->passengerId) {
         current->passenger = p;
         return;
     }
 
+    //generate random level for new node
     int rlevel = randomLevel();
 
+    //increase list level if new node exceed current height
     if (rlevel > level) {
         for (int i = level + 1; i <= rlevel; i++) update[i] = header;
         level = rlevel;
     }
 
+    //create new node and link it
     skipListNode* n = createNode(p, rlevel);
 
     for (int i = 0; i <= rlevel; i++) {
@@ -156,9 +167,10 @@ void SkipList::insertElement(Passenger* p) {
         update[i]->forward[i] = n;
     }
 }
-bool SkipList::searchElement(const string& key, bool showResult) const {
+bool SkipList::searchElement(const string& key, bool showResult) const { //search passengerId
     skipListNode* current = header;
 
+    //traverse from top level down to locate target position
     for (int i = level; i >= 0; i--) {
         while (current->forward[i] != nullptr &&
                current->forward[i]->passenger != nullptr &&
@@ -167,18 +179,20 @@ bool SkipList::searchElement(const string& key, bool showResult) const {
         }
     }
 
+    //candidate node at level 0
     current = current->forward[0];
 
+    
     if (current != nullptr &&
         current->passenger != nullptr &&
         current->passenger->passengerId == key) {
 
         if (showResult) {
             cout << left << setw(30) << "Skip List Search"
-                 << setw(15) << current->passenger->passengerId 
-                 << setw(20) << current->passenger->name
-                 << current->passenger->seatRow << current->passenger->seatColumn
-                 << right << setw(15) << current->passenger->flightClass;
+                << setw(15) << current->passenger->passengerId 
+                << setw(20) << current->passenger->name
+                << current->passenger->seatRow << current->passenger->seatColumn
+                << right << setw(15) << current->passenger->flightClass;
         }
         return true;
     }
@@ -188,6 +202,7 @@ bool SkipList::searchElement(const string& key, bool showResult) const {
 
     return false;
 }
+// linked list -> skip list
 static void buildSkipListFromLinkedList(SkipList& sl, SNode* head) {
     for (SNode* cur = head; cur != nullptr; cur = cur->next) {
         sl.insertElement(&cur->data);
@@ -198,6 +213,7 @@ static bool skipListSearchFromLinkedList(SNode* head, const string& id, bool sho
     buildSkipListFromLinkedList(sl, head);
     return sl.searchElement(id, showResult);
 }
+
 //4. Sentinel Linear Search
 bool LinkedListSystem::sentinelLinearSearchById(SNode* head,SNode* tail, string id, bool showResult){
     if (head == nullptr || tail == nullptr) {
@@ -236,61 +252,7 @@ bool LinkedListSystem::sentinelLinearSearchById(SNode* head,SNode* tail, string 
     return true;
 }
 
-//Heuristic Search (will affect list structure)
-//1. Move-to-Front Heuristic Search
-bool LinkedListSystem::moveToFrontSearchById(SNode*& head, string id){
-    SNode* current  = head;
-    SNode* prev = nullptr;
-
-    while(current!= nullptr){
-        if(current->data.passengerId == id){
-            if(prev != nullptr){
-                prev->next = current-> next;
-                current->next = head;
-                head = current;
-            }
-            return true;
-        }
-        prev = current;
-        current = current->next;
-    }
-    return false;
-}
-//2. Transposition Heuristic Search
-bool LinkedListSystem::transpositionSearchById(SNode*& head, string id){
-    SNode* current = head;
-    SNode* prev = nullptr;
-    SNode* prevPrev = nullptr;
-
-    while(current != nullptr){
-        if(current->data.passengerId == id){
-            if(prev == nullptr){
-                return true;
-            }
-            else if(prevPrev == nullptr){
-                prev->next = current->next;
-                current->next = prev;
-                head = current;
-            }
-            else{
-                prevPrev->next = current;
-                prev->next = current->next;
-                current->next = prev;
-            }
-            return true;
-        }
-        prevPrev = prev;
-        prev = current;
-        current = current->next;
-    }
-    return false;
-}
-//3. Frequency Count Heuristic Search
-
-
-
 //Search by Name
-// The simplest way is linear search (Iteration)
 // 1. Linear Search (Iterative) (Exact Search)
 bool LinkedListSystem::linearSearchIterativeByName(SNode* head, string name, bool showResult){
     bool found = false;
@@ -307,10 +269,10 @@ bool LinkedListSystem::linearSearchIterativeByName(SNode* head, string name, boo
             found = true;
             if(showResult){
                 cout << left << setw(15) << current->data.passengerId
-                     << setw(25) << current->data.name
-                     << setw(10) << current->data.seatRow
-                     << setw(13) << current->data.seatColumn
-                     << setw(15) << current->data.flightClass << endl;
+                    << setw(25) << current->data.name
+                    << setw(10) << current->data.seatRow
+                    << setw(13) << current->data.seatColumn
+                    << setw(15) << current->data.flightClass << endl;
             }
         }
     }
@@ -339,10 +301,10 @@ bool LinkedListSystem::linearSearchIterativeByNameContains(SNode* head, string n
             found = true;
             if(showResult){
                 cout << left << setw(15) << current->data.passengerId
-                     << setw(25) << current->data.name
-                     << setw(10) << current->data.seatRow
-                     << setw(13) << current->data.seatColumn
-                     << setw(15) << current->data.flightClass << endl;
+                    << setw(25) << current->data.name
+                    << setw(10) << current->data.seatRow
+                    << setw(13) << current->data.seatColumn
+                    << setw(15) << current->data.flightClass << endl;
             }
         }
     }
@@ -363,52 +325,8 @@ int LinkedListSystem::linearSearchIterativeByNameContainsCount(SNode* head, cons
     }
     return count;
 }
+
 //Benchmarking
-/*
-void LinkedListSystem::benchmarkSearch(SNode* head, SNode* tail, string id){
-    int iteration = 1000;
-    cout << "\n================= BENCHMARKING (x" << iteration << " runs) ================" << endl;
-    cout << "Target ID: " << id << endl;
-
-    volatile int sink = 0;
-
-    using DoubleMs = duration<double, std::milli>;
-
-    SkipList sl(16, 0.5f);
-    buildSkipListFromLinkedList(sl, head);
-
-    //Read only algorithms
-    //1. Linear Search (Iterative)
-    auto start = high_resolution_clock::now();
-    for(int i = 0; i < iteration; i++)linearSearchIterativeById(head, id, false);
-    auto end = high_resolution_clock::now();
-    DoubleMs duration = end - start;
-    cout << "[1] Linear Search (Iterative) :" << duration.count() << " ms." << endl;
-
-    //2. Linear Search (Recursive)
-    start = high_resolution_clock::now();
-    for(int i = 0; i < iteration; i++) linearSearchRecursiveById(head, id, false);
-    end = high_resolution_clock::now();
-    duration = end - start;
-    cout << "[2] Linear Search (Recursive) :" << duration.count() << " ms." << endl;
-
-    //3. Skip List Search
-    start = high_resolution_clock::now();
-    for (int i = 0; i < iteration; i++) sink += sl.searchElement(id,false);
-    end = high_resolution_clock::now();
-    duration = end - start;
-    cout << "[3] Skip List Search : " << duration.count() << " ms." << endl;
-
-    //4. Sentinel Linear Search
-    start = high_resolution_clock::now();
-    for(int i = 0; i < iteration; i++) sentinelLinearSearchById(head, tail, id, false);
-    end = high_resolution_clock::now();
-    duration = end - start;
-    cout << "[4] Sentinel Linear Search :" << duration.count() << " ms." << endl;
-
-    cout << "==============================================================" << endl;
-}
-*/
 void LinkedListSystem::benchmarkSearchId(SNode* head, SNode* tail, string id){
     int iteration = 10000;
     volatile int sink = 0;
@@ -436,26 +354,15 @@ void LinkedListSystem::benchmarkSearchId(SNode* head, SNode* tail, string id){
     cout << left << setw(30) << "Algorithm" << setw(20) << "Total Time (ms)" << setw(20) << "Avg Time (ms)" << setw(20) << "Est. Memory (Stack)" << endl;
     cout << "---------------------------------------------------------------------------------------------" << endl;
 
-        // -------------------------
     // Est. stack memory (bytes)
-    // -------------------------
     // Iterative linear: local SNode* current
     const size_t memLinearIter = sizeof(SNode*);
-
-    // Sentinel (your implementation): local Passenger sentinelData + SNode sentinelNode + oldNext ptr + current ptr
-    // (Note: sentinelNode contains Passenger data inside it, so this already includes that Passenger again.)
-    // BUT in your code, sentinelNode is constructed from sentinelData (copy). Both objects exist on stack.
-    const size_t memSentinel =
-        sizeof(Passenger) + sizeof(SNode) + sizeof(SNode*) + sizeof(SNode*);
-
-    // Skip list search (searchElement): local skipListNode* current + loop index
-    // (int index lives on stack too; very small but we include it)
+    // Sentinel search: local Passenger data + sentinel node + pointer variables
+    const size_t memSentinel = sizeof(Passenger) + sizeof(SNode) + sizeof(SNode*) + sizeof(SNode*);
+    // Skip list search: local skipListNode* current + loop index
     const size_t memSkipSearch = sizeof(skipListNode*) + sizeof(int);
-
-    // Recursive linear: worst-case depth N frames.
-    // With your signature: linearSearchRecursiveById(SNode*, string, bool)
-    // Each recursive call frame will at least hold: SNode* + string object + bool
-    // (ABI overhead not counted)
+    // Recursive linear search: worst-case N stack frames
+    // Each frame holds: SNode* + string + bool
     const size_t memRecFrame = sizeof(SNode*) + sizeof(string) + sizeof(bool);
     const size_t memLinearRecWorst = N * memRecFrame;
     
@@ -495,7 +402,6 @@ void LinkedListSystem::benchmarkSearchId(SNode* head, SNode* tail, string id){
 
     (void)sink;
 }
-
 void LinkedListSystem::benchmarkSearchName(SNode* head, string name){
     int iteration = 10000;
     volatile int sink = 0;
@@ -537,6 +443,7 @@ void LinkedListSystem::benchmarkSearchName(SNode* head, string name){
     (void)sink;
 }
 //interface
+
 void LinkedListSystem::searchPassenger() {
     int choice;
     do{

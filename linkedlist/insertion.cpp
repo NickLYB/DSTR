@@ -9,9 +9,9 @@
 using namespace std;
 using namespace std::chrono;
 
-//generate new id, auto increment
+// Generates a unique 6-digit passenger ID by finding the current maximum and incrementing it
 string LinkedListSystem::generateNewId() {
-    int maxId = 100000; // Starting base for 6-digit IDs
+    int maxId = 100000; // Base starting point for numeric IDs
     SNode* current = sHead;
 
     while (current != nullptr) {
@@ -21,14 +21,15 @@ string LinkedListSystem::generateNewId() {
                 maxId = currentId;
             }
         } catch (...) {
-            // Skip non-numeric IDs if any exist
+            // Skips non-numeric IDs to prevent crashes
         }
         current = current->next;
     }
 
     return to_string(maxId + 1);
 }
-//check if string has digits
+
+// Returns true if the string contains any numeric digits
 bool LinkedListSystem::hasDigits(string str) {
     for (char c : str) {
         if (isdigit(c)) return true;
@@ -36,20 +37,20 @@ bool LinkedListSystem::hasDigits(string str) {
     return false;
 }
 
-//add passenger to linked list
+// Adds a passenger object to the end of the singly linked list using the tail pointer
 void LinkedListSystem::addPassengerToList(Passenger p) {
     SNode* newNode = new SNode(p);
 
     if (sHead == nullptr) {
-        sHead = sTail = newNode;
+        sHead = sTail = newNode; // List was empty
     } else {
-        // Appending to the tail for efficient O(1) insertion
+        // Efficient O(1) insertion by updating the tail
         sTail->next = newNode;
         sTail = newNode;
     }
 }
 
-//benchmark
+// Static helper for internal in-memory benchmarking (no I/O or printing)
 static void appendInMemoryWithTail(SNode*& head, SNode*& tail, const Passenger& p) {
     SNode* node = new SNode(p);
     node->next = nullptr;
@@ -61,6 +62,8 @@ static void appendInMemoryWithTail(SNode*& head, SNode*& tail, const Passenger& 
         tail = node;
     }
 }
+
+// Measures insertion performance for different volumes of operations
 void LinkedListSystem::insertBenchmark() {
     if (!sHead) {
         cout << "[Info] List is empty. Load data first.\n";
@@ -68,11 +71,13 @@ void LinkedListSystem::insertBenchmark() {
         return;
     }
 
+    // Performance test cases
     const int OPS_1 = 1000;
     const int OPS_2 = 5000;
     const int OPS_3 = 10000;
     const int OPS_4 = 50000;
 
+    // Lambda to count nodes for initial size report
     auto countNodes = [](SNode* head) {
         int count = 0;
         SNode* current = head;
@@ -83,14 +88,16 @@ void LinkedListSystem::insertBenchmark() {
         return count;
     };
 
+    // Lambda to find the tail pointer for a local list
     auto getTailLocal = [](SNode* head) -> SNode* {
         if(!head) return nullptr;
         while (head->next) head = head->next;
         return head;
-    };  
+    };
 
     int datasetSize = countNodes(sHead);
 
+    // Display benchmark header
     clearScreen();
     cout << string(100, '=') << endl;
     cout << string(20, ' ') << "BENCHMARK: INSERT PERFORMANCE (APPEND ONLY, IN-MEMORY)" << endl;
@@ -103,10 +110,12 @@ void LinkedListSystem::insertBenchmark() {
     cout << left << setw(12) << "Ops (N)" << setw(20) << "Total Time (ms)" << setw(20) << "Avg Time (ns/op)" << setw(25) << "Avg Traversal Steps" << setw(15) << "Allocations" << endl;
     cout << string(100, '-') << endl;
 
+// Execution logic for a single benchmark test case
 auto runCase = [&](int ops) {
-        SNode* head = cloneList(sHead);
+        SNode* head = cloneList(sHead); // Clone list to keep benchmark separate from actual data
         SNode* tail = getTailLocal(head);
 
+        // Template passenger for testing
         Passenger base = sHead->data;
         base.name = "BENCH";
         base.seatRow = "Z";
@@ -118,6 +127,7 @@ auto runCase = [&](int ops) {
 
         auto start = high_resolution_clock::now();
 
+        // Perform bulk insertions
         for (int i = 0; i < ops; i++) {
             Passenger p = base;
 
@@ -126,12 +136,13 @@ auto runCase = [&](int ops) {
 
             appendInMemoryWithTail(head, tail, p);
             allocations++;
-            totalSteps += 1; // no traversal, constant "work"
+            totalSteps += 1; // Tail pointer means constant work
         }
 
         auto stop = high_resolution_clock::now();
         auto ms = duration_cast<milliseconds>(stop - start).count();
 
+        // Calculate and print results
         double avgNs = (ms * 1e6) / ops;
         double avgSteps = static_cast<double>(totalSteps) / ops;
 
@@ -143,7 +154,7 @@ auto runCase = [&](int ops) {
             << setw(15) << allocations
             << endl;
 
-        deleteList(head);
+        deleteList(head);   // Cleanup temporary benchmark list
     };
 
     runCase(1000);
@@ -153,20 +164,22 @@ auto runCase = [&](int ops) {
 
     cout << string(100, '=') << "\n";
     waitForEnter();
-    
+
 }
 
-//main function
+// Interactive function to handle new passenger bookings and seat assignments
 void LinkedListSystem::insertPassenger() {
     int maxRows, maxCols;
     getPlaneDimensions(maxRows, maxCols);
 
-    // Build occupancy grid
+    // Initialize 2D occupancy grid to track taken seats
     bool** occupied = new bool*[maxRows];
     for(int i = 0; i < maxRows; i++) {
         occupied[i] = new bool[maxCols];
         for(int j = 0; j < maxCols; j++) occupied[i][j] = false;
     }
+
+    // Populate the occupancy grid from current linked list data
     SNode* tempNode = sHead;
     while (tempNode != nullptr) {
         try {
@@ -180,8 +193,7 @@ void LinkedListSystem::insertPassenger() {
     clearScreen();
     cout << "=== Advanced Flight Reservation System ===" << endl;
 
-    // Suggest 15 seats for EACH class
-
+    // Suggest 15 available seats for each ticket category
     auto suggestForRange = [&](string label, int start, int end) {
         cout << "\n>>> Suggestions for " << label << " (Rows " << start << "-" << end << "):" << endl;
         int found = 0;
@@ -204,7 +216,7 @@ void LinkedListSystem::insertPassenger() {
 
     cout << "\n-----------------------------------------------------" << endl;
 
-        // Auto-generate ID and get Name
+    // Input loop for Name
     string id = generateNewId();
     cout << "[System] New Passenger ID: "  << id << setw(20) << "[-] : quit" << endl;
 
@@ -221,7 +233,7 @@ void LinkedListSystem::insertPassenger() {
     // STEP-BY-STEP SEAT VALIDATION
     int r_idx = -1, c_idx = -1;
 
-    // --- Step A: Validate Class ---
+    // Validation loop for Ticket Class
     while (true) {
         cout << "\nSelect Class (First/Business/Economy): ";
         getline(cin, fClass);
@@ -236,7 +248,7 @@ void LinkedListSystem::insertPassenger() {
         cout << "Error: Invalid class. Please type First, Business, or Economy." << endl;
     }
 
-    // --- Step B: Validate Row against Class ---
+    // Validation loop for Row based on Class range
     while (true) {
         cout << "Enter Row for " << fClass << " class: ";
         getline(cin, row);
@@ -260,7 +272,7 @@ void LinkedListSystem::insertPassenger() {
         }
     }
 
-    // --- Step C: Validate Column and Seat Availability ---
+    // Validation loop for Column and seat availability
     while (true) {
         cout << "Enter Column (A-" << (char)('A' + maxCols - 1) << "): ";
         getline(cin, col);
@@ -297,23 +309,23 @@ void LinkedListSystem::insertPassenger() {
     Passenger p(id, name, row, col, fClass);
     addPassengerToList(p);
 
-    // Cleanup
+    // Free the occupancy grid memory
     for(int i = 0; i < maxRows; i++) delete[] occupied[i];
     delete[] occupied;
 
     if(saveToFile("flight_passenger_data.csv")) {
         cout << "\n[Success] Reservation confirmed!" << endl;
-        cout << "Name: " << name << " | ID: " << id << " | Seat: " << row << col << " (" << fClass << ")" << endl;  
+        cout << "Name: " << name << " | ID: " << id << " | Seat: " << row << col << " (" << fClass << ")" << endl;
     }
     else{
         cout << "\n[Error] Failed to save reservation to file." << endl;
     }
-    
+
     waitForEnter();
-    
+
 }
 
-//insert menu
+// Displays the insertion menu and routes user input to the correct function
 void LinkedListSystem::insertPassengerMenu() {
 
     int choice;
@@ -333,7 +345,7 @@ void LinkedListSystem::insertPassengerMenu() {
             cout << "Invalid input! Please enter a number." << endl;
             choice = -1;
             flushInput();
-            waitForEnter(); 
+            waitForEnter();
             continue;
         }
         flushInput();
@@ -357,5 +369,3 @@ void LinkedListSystem::insertPassengerMenu() {
     } while (choice != 0);
 
 }
-
-

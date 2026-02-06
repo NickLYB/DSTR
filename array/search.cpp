@@ -4,16 +4,14 @@
 #include <iomanip>
 #include <chrono>
 #include <string>
-#include <cctype>    // for isdigit, toupper
-#include <algorithm> // for std::sort, std::min
+#include <cctype>
+#include <algorithm>
 
 using namespace std;
 using namespace std::chrono;
 
-// ==========================================
-//           HELPER FUNCTIONS
-// ==========================================
 
+// helper
 bool isStringNumeric(const string& str) {
     if (str.empty()) return false;
     for (char c : str) {
@@ -22,12 +20,11 @@ bool isStringNumeric(const string& str) {
     return true;
 }
 
-//Binary Search
+// binary Search
 int binarySearch(Passenger** list, int low, int high, string target) {
     while (low <= high) {
-        int mid = low + (high - low) / 2;
+        int mid = low + (high - low) / 2; // calculate middle index
 
-        // Direct access to passengerId
         if (list[mid]->passengerId == target) return mid;
 
         if (list[mid]->passengerId < target)
@@ -38,7 +35,7 @@ int binarySearch(Passenger** list, int low, int high, string target) {
     return -1;
 }
 
-//Exponential Search
+// exponential Search
 int runExponentialSearch(Passenger** list, int size, string target) {
     if (size == 0) return 0;
 
@@ -46,28 +43,23 @@ int runExponentialSearch(Passenger** list, int size, string target) {
     if (list[0]->passengerId == target) return 1;
     if (size == 1) return 0;
 
-    // 2.find Range (1, 2, 4, 8...)
+    // 2.find Range
     int i = 1;
     while (i < size && list[i]->passengerId <= target) {
         i = i * 2;
     }
 
     // 3.binary Search
-    //search in the range [i/2, min(i, size-1)]
+    // search in the range
     int index = binarySearch(list, i / 2, min(i, size - 1), target);
 
     // 4.return result
     return (index != -1) ? 1 : 0;
 }
 
-// ==========================================
-//           MAIN SEARCH FUNCTION
-// ==========================================
-
 void ArraySystem::searchPassenger() {
     int choice;
 
-    // --- MAIN MENU LOOP ---
     do {
         clearScreen();
         cout << "=============================" << endl;
@@ -80,7 +72,6 @@ void ArraySystem::searchPassenger() {
         cout << "=============================" << endl;
         cout << "Select an option: ";
 
-        // --- INPUT VALIDATION ---
         if (!(cin >> choice)) {
             cout << "Invalid input! Please enter a number." << endl;
             choice = -1;
@@ -98,7 +89,6 @@ void ArraySystem::searchPassenger() {
         if (choice == 1 || choice == 2) {
             string searchTerm;
 
-            // --- 1. GET INPUT ---
             if (choice == 1) {
                 while (true) {
                     cout << endl << "Enter Passenger ID (6 digits): ";
@@ -115,11 +105,10 @@ void ArraySystem::searchPassenger() {
                 }
             }
 
-            // --- 2. DISPLAY RESULTS FIRST ---
             int foundCount = 0;
             bool anyFound = false;
 
-            // Pre-scan logic
+            // check if record exist or not
             for (int i = 0; i < passengerCount; i++) {
                 if (choice == 1) {
                     if (passengerList[i]->passengerId == searchTerm) { anyFound = true; break; }
@@ -166,7 +155,6 @@ void ArraySystem::searchPassenger() {
                 cout << "Total Orders: " << foundCount << endl;
             }
 
-            // --- 3. ASK FOR BENCHMARK ---
             char benchChoice;
             while (true) {
                 cout << endl << "Search Complete. Wanting to benchmark search times? (Y/N): ";
@@ -178,19 +166,18 @@ void ArraySystem::searchPassenger() {
                 cout << "Invalid input. Please enter 'Y' or 'N'." << endl;
             }
 
-            // --- 4. EXECUTE BENCHMARK IF 'Y' ---
             if (benchChoice == 'Y') {
-                const int ITERATIONS = 10000;
+                const int ITERATIONS = 10000; // run 10000 times for measurable time
                 using DoubleMs = duration<double, std::milli>;
                 volatile int sink = 0;
 
-                // Memory Estimations
+                // memory estimations
                 const size_t memLinear = sizeof(int) + sizeof(bool);
                 const size_t memExpo = (sizeof(int) * 5) + sizeof(string);
 
                 clearScreen();
 
-                // --- PRINT HEADERS ---
+
                 cout << (choice == 1 ? "Target ID: " : "Target Name: ") << searchTerm << endl;
                 cout << "=================================================================================================================" << endl;
                 cout << "                                BENCHMARK: SEARCH PERFORMANCE (" << ITERATIONS << " ITERATIONS)                          " << endl;
@@ -211,9 +198,8 @@ void ArraySystem::searchPassenger() {
                          << setw(20) << memBytes << "\n";
                 };
 
-                // ----------------------------------------------------
-                // BENCHMARK 1: STANDARD LINEAR SEARCH (RUNS FOR BOTH)
-                // ----------------------------------------------------
+
+                // benchmark linear search
                 int matchCountLin = 0;
                 auto start = high_resolution_clock::now();
                 for(int k=0; k<ITERATIONS; k++) {
@@ -231,9 +217,7 @@ void ArraySystem::searchPassenger() {
                 DoubleMs dur = end - start;
                 printRow("Linear Search", matchCountLin, dur.count(), memLinear);
 
-                // ----------------------------------------------------
-                // BENCHMARK 2: EXPONENTIAL SEARCH (ONLY FOR ID SEARCH)
-                // ----------------------------------------------------
+                // benchmark exponential search
                 if (choice == 1) {
                     Passenger** sortedList = new Passenger*[passengerCount];
                     for(int i=0; i<passengerCount; i++) sortedList[i] = passengerList[i];
@@ -255,7 +239,6 @@ void ArraySystem::searchPassenger() {
                     delete[] sortedList;
                 }
 
-                // --- FOOTERS ---
                 cout << "-----------------------------------------------------------------------------------------------------------------" << endl;
                 cout << "N (nodes): " << passengerCount << endl;
                 cout << "Note: Est. Stack (bytes) counts only local stack objects (sizeof)." << endl;

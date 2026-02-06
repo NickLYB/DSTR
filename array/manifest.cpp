@@ -11,9 +11,37 @@
 using namespace std;
 using namespace std::chrono;
 
+/*
+==============================================================
+ PERFORMANCE MEMORY ESTIMATION HELPERS
+--------------------------------------------------------------
+These functions estimate stack memory usage of sorting algorithms.
+We assume stack memory is only from local variables inside functions.
+This is used later in performance summary comparison.
+==============================================================
+*/
+
+static size_t estimateInsertionSortStackBytes() {
+    // insertionSortByName / insertionSortByID locals:
+    // int i, int j, Passenger* key
+    return sizeof(int) * 2 + sizeof(Passenger*);
+}
+
+static size_t estimateSelectionSortStackBytes() {
+    // selectionSortByName / selectionSortByID locals:
+    // int i, int j, int minIdx, Passenger* temp
+    return sizeof(int) * 3 + sizeof(Passenger*);
+}
+
 // ===============================
 // Seating Chart
 // ===============================
+
+/*
+This function scans all passengers and finds the highest row number.
+It determines how many rows must be printed in the seating chart.
+*/
+
 int ArraySystem::getMaxRow(){
     int maxRow = 0;
     for(int i = 0 ; i<passengerCount; i++){
@@ -24,15 +52,28 @@ int ArraySystem::getMaxRow(){
     return maxRow;
 }
 
+/*
+Displays the full seating chart in a 2D grid.
+[X] = Occupied seat
+[.] = Available seat
+
+Rows are divided into 3 flight classes:
+1 70   : First Class
+71 210 : Business Class
+211 460: Economy Class
+*/
+
 void ArraySystem::displaySeatingChart() {
     clearScreen();
     cout << "==================== FULL SEATING CHART ====================\n";
     cout << "Legend: [X] Occupied   [.] Available" << endl;
 
     int row = getMaxRow();
+    // Loop through each row and print seats
     for(int i = 0; i < row; i++) {
         int rowNum = i + 1;
 
+        // Print class headers dynamically
         if(rowNum == 1) {
             cout << "\n[ SECTION: FIRST CLASS (Rows 1-70) ]" << endl;
             cout << "      ";
@@ -54,6 +95,8 @@ void ArraySystem::displaySeatingChart() {
             cout << endl;
             cout << string(MAX_COLUMNS * 4 + 6, '-') << endl;
         }
+
+        // Print seat occupancy row by row
         cout << setw(3) << i + 1 << " | ";
         for (int j = 0; j < MAX_COLUMNS; j++) cout << (seats[i][j] ? "[X] " : "[.] ");
         cout << endl;
@@ -63,9 +106,7 @@ void ArraySystem::displaySeatingChart() {
     waitForEnter();
 }
 
-// ===============================
 // Manifest & Seat Report Menu
-// ===============================
 void ArraySystem::ManifestnSeatReport() {
     int choice;
 
@@ -104,9 +145,14 @@ void ArraySystem::ManifestnSeatReport() {
     } while (choice != 0);
 }
 
-// ==========================================================
 // Performance Summary
-// ==========================================================
+/*
+After sorting comparison, this function shows:
+  Execution time comparison
+  Memory usage estimation
+  Auto-selected faster algorithm
+*/
+
 void ArraySystem::displayFinalPerformance(double tI, double tS, int totalN, string winner) {
     clearScreen();
     cout << "==========================================================" << endl;
@@ -118,15 +164,21 @@ void ArraySystem::displayFinalPerformance(double tI, double tS, int totalN, stri
     cout << "----------------------------------------------------------" << endl;
 
     cout << fixed << setprecision(2);
-    cout << left << setw(20) << "Insertion Sort" << setw(15) << tI << "40.00 bytes" << endl;
-    cout << left << setw(20) << "Selection Sort" << setw(15) << tS << "40.00 bytes" << endl;
+
+    // real estimate using sizeof-based helper
+    cout << left << setw(20) << "Insertion Sort"
+         << setw(15) << tI
+         << estimateInsertionSortStackBytes() << " bytes" << endl;
+
+    cout << left << setw(20) << "Selection Sort"
+         << setw(15) << tS
+         << estimateSelectionSortStackBytes() << " bytes" << endl;
 
     cout << "----------------------------------------------------------" << endl;
     cout << "Total Records Processed: " << totalN << endl;
     cout << "Winner (Auto-Selected):  " << winner << endl;
     cout << "----------------------------------------------------------" << endl;
 
-    // avoid divide-by-zero
     if (tI > 0 && tS > 0) {
         double ratio = (tI > tS) ? (tI / tS) : (tS / tI);
         cout << "Analysis: " << winner << " was faster by " << ratio << "x." << endl;
@@ -134,7 +186,7 @@ void ArraySystem::displayFinalPerformance(double tI, double tS, int totalN, stri
         cout << "Analysis: Timing values too small to compute ratio." << endl;
     }
 
-    cout << "Both use O(1) stack space as they are iterative." << endl;
+    cout << "Both use O(1) stack space (iterative, no recursion)." << endl;
     cout << "==========================================================" << endl;
     waitForEnter();
 }
@@ -167,6 +219,7 @@ void ArraySystem::displayManifest() {
     cout << "======================================" << endl;
     cout << "Choice: ";
 
+    // Input validation: user must enter number
     if (!(cin >> sortOption)) {
         cout << "Invalid input! Please enter a number." << endl;
         sortOption = -1;
@@ -174,6 +227,8 @@ void ArraySystem::displayManifest() {
         waitForEnter();
         continue;
     }
+
+    // Extra validation: prevent choices > 3
     if (sortOption > 3){
         cout << "Invalid choice. Please select again." << endl;
         flushInput();
@@ -181,20 +236,15 @@ void ArraySystem::displayManifest() {
     }
     } while(sortOption < 0 || sortOption > 3);
 
+    // if user chooses 0, return back
     if(sortOption == 0) return;
-    // -------------------------------
-    // Prepare Working Copy
-    // -------------------------------
-    // Passenger* temp[MAX_PASSENGERS];
-    // for (int i = 0; i < passengerCount; i++)temp[i] = passengerList[i];
 
+    // Variables for timing comparison
     double timeI = 0, timeS = 0;
     string winner = "None";
     bool didCompare = false;
 
-    // -------------------------------
     // If user wants sorting (Name or ID)
-    // -------------------------------
     if (sortOption == 1 || sortOption == 2) {
         char choice;
         cout << "\nPerform Sorting Performance Comparison before viewing? (y/n): ";
@@ -207,24 +257,29 @@ void ArraySystem::displayManifest() {
             cout << "\n[System] Comparing algorithms on "
                  << passengerCount << " records..." << endl;
 
+            /*
+            clone[] is used so insertion sort can run on a copy of data,
+            meaning the original passengerList remains unchanged until winner decided.
+            */
             Passenger* clone[MAX_PASSENGERS];
             for (int i = 0; i < passengerCount; i++)
                 clone[i] = passengerList[i];
 
-            // ---- Insertion Sort timing on clone ----
+            // Insertion Sort timing on clone
             auto startI = high_resolution_clock::now();
             if (sortOption == 1) insertionSortByName(clone, passengerCount);
             else insertionSortByID(clone, passengerCount);
             auto endI = high_resolution_clock::now();
             timeI = duration<double, milli>(endI - startI).count();
 
-            // ---- Selection Sort timing on temp ----
+            // Selection Sort timing on temp
             auto startS = high_resolution_clock::now();
             if (sortOption == 1) selectionSortByName(passengerList, passengerCount);
             else selectionSortByID(passengerList, passengerCount);
             auto endS = high_resolution_clock::now();
             timeS = duration<double, milli>(endS - startS).count();
 
+            // Decide winner based on time
             winner = (timeI < timeS) ? "Insertion Sort" : "Selection Sort";
 
             // if insertion wins, copy clone sorted result into temp
@@ -247,16 +302,14 @@ void ArraySystem::displayManifest() {
             else selectionSortByID(passengerList, passengerCount);
         }
     }
-    // sortOption == 0 => no sort, display as-is
 
-    // -------------------------------
     // Pagination & Display
-    // -------------------------------
     const int PAGE_SIZE = 20;
     int totalPages = (passengerCount + PAGE_SIZE - 1) / PAGE_SIZE;
     int currentPage = 1;
     bool viewing = true;
 
+    // User can navigate pages until they quit
     while (viewing) {
         clearScreen();
         cout << "========================== PASSENGER MANIFEST ==========================" << endl;
@@ -270,9 +323,11 @@ void ArraySystem::displayManifest() {
              << setw(15) << "Class" << endl;
         cout << "------------------------------------------------------------------------" << endl;
 
+        // Determine which passengers belong to this page
         int start = (currentPage - 1) * PAGE_SIZE;
         int end = min(start + PAGE_SIZE, passengerCount);
 
+        // Print passengers within current page range
         for (int i = start; i < end; i++) {
             cout << left << setw(15) << passengerList[i]->passengerId
                  << setw(25) << passengerList[i]->name
@@ -307,13 +362,21 @@ void ArraySystem::displayManifest() {
         displayFinalPerformance(timeI, timeS, passengerCount, winner);
 }
 
-// ==========================================================
 // Sorting Algorithms
-// ==========================================================
+
+/*
+Insertion Sort by Name
+- Works by taking one element (key) and inserting into correct position
+- Best case: nearly sorted data (fast)
+- Worst case: O(n^2)
+*/
+
 void ArraySystem::insertionSortByName(Passenger* arr[], int n) {
     for (int i = 1; i < n; i++) {
         Passenger* key = arr[i];
         int j = i - 1;
+
+        // Shift elements right until correct position found
         while (j >= 0 && arr[j]->name > key->name) {
             arr[j + 1] = arr[j];
             j--;
@@ -322,19 +385,27 @@ void ArraySystem::insertionSortByName(Passenger* arr[], int n) {
     }
 }
 
+/*
+Selection Sort by Name
+- Finds smallest element and swaps to front each pass
+- Time complexity always O(n^2)
+- Simple but slower than insertion sort for nearly sorted lists
+*/
 void ArraySystem::selectionSortByName(Passenger* arr[], int n) {
     for (int i = 0; i < n - 1; i++) {
         int minIdx = i;
+        // Find index of smallest element
         for (int j = i + 1; j < n; j++) {
             if (arr[j]->name < arr[minIdx]->name)
                 minIdx = j;
         }
+        // Swap smallest into correct position
         Passenger* tempPtr = arr[minIdx];
         arr[minIdx] = arr[i];
         arr[i] = tempPtr;
     }
 }
-
+//Insertion Sort by Passenger ID
 void ArraySystem::insertionSortByID(Passenger* arr[], int n) {
     for (int i = 1; i < n; i++) {
         Passenger* key = arr[i];
@@ -347,6 +418,7 @@ void ArraySystem::insertionSortByID(Passenger* arr[], int n) {
     }
 }
 
+// Selection sort by passenger ID
 void ArraySystem::selectionSortByID(Passenger* arr[], int n) {
     for (int i = 0; i < n - 1; i++) {
         int minIdx = i;

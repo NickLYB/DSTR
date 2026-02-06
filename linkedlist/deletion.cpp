@@ -12,13 +12,15 @@ using namespace std::chrono;
 //delete by id
 //single linked list
 void LinkedListSystem::deleteByIdSingle(string id) {
+
+    // check if list is empty
     if (!sHead) {
         cout << "List is empty." << endl;
         return;
     }
 
-    SNode* current = sHead;
-    SNode* prev = nullptr;
+    SNode* current = sHead; //pointer for traverse the list
+    SNode* prev = nullptr;  //keep track of previous node for link adjustment
     int nodesVisited = 0;
 
     while (current) {
@@ -48,17 +50,18 @@ void LinkedListSystem::deleteByIdSingle(string id) {
                 return;
             }
 
-            if (prev == nullptr) {
+            //delete head node
+            if (prev == nullptr) { 
                 sHead = current->next;
-                if (sHead == nullptr)
-                    sTail = nullptr;
-            } else {
+                if (sHead == nullptr) sTail = nullptr; // update tail to null as well when list is empty
+            } 
+            //delete middle or tail node
+            else { 
                 prev->next = current->next;
-                if (current == sTail)
-                    sTail = prev;
+                if (current == sTail) sTail = prev; //update tail if last node is removed
             }
 
-            delete current;
+            delete current; //free memory
 
             if (saveToFile("flight_passenger_data.csv"))
                 cout << "[Success] Passenger record deleted from file." << endl;
@@ -68,6 +71,7 @@ void LinkedListSystem::deleteByIdSingle(string id) {
             return;
         }
 
+        //move to next node
         prev = current;
         current = current->next;
     }
@@ -75,36 +79,40 @@ void LinkedListSystem::deleteByIdSingle(string id) {
     cout << "Passenger ID " << id << " not found." << endl;
 }
 
-// --- Helper: count nodes ---
+//count the total number of nodes
 static int countNodes(SNode* head) {
     int n = 0;
     while (head) { n++; head = head->next; }
     return n;
 }
 
-// --- Helper: delete by ID in-memory (linear scan + relink + delete) ---
+//helper: deletion (in memory), for benchmark
 static bool deleteByIdInMemory(SNode*& head, const string& targetId, int& stepsVisited) {
     stepsVisited = 0;
     if (!head) return false;
 
+    //pointer
     SNode* prev = nullptr;
     SNode* cur  = head;
 
+    //linear traversal
     while (cur) {
         stepsVisited++;
         if (cur->data.passengerId == targetId) {
-            if (!prev) head = cur->next;
-            else       prev->next = cur->next;
-            delete cur;
+            if (!prev) head = cur->next; //delete head node
+            else prev->next = cur->next; //delete middle/tail node
+
+            delete cur; //free memory
             return true;
         }
+        //next node
         prev = cur;
         cur = cur->next;
     }
     return false;
 }
 
-// --- Helper: Fisher–Yates shuffle on an int array (no vector) ---
+//Fisher-Yates algorithm, randomly shuffles an integer array, for benchmark delete hit random
 static void shuffleIntArray(int* a, int n) {
     for (int i = n - 1; i > 0; i--) {
         int j = rand() % (i + 1);
@@ -115,42 +123,45 @@ static void shuffleIntArray(int* a, int n) {
 }
 
 void LinkedListSystem::deleteBenchmark() {
+    //check if list is empty
     if (!sHead) {
         cout << "\n[Benchmark] No passengers loaded.\n";
         waitForEnter();
         return;
     }
 
+    //number of operation
     const int BENCHMARK_OPS = 5000;
 
+    //get size and max cap hit operation to avoid deleting more than availble nodes
     int passengerCount = countNodes(sHead);
     int opsHit = (passengerCount < BENCHMARK_OPS) ? passengerCount : BENCHMARK_OPS;
 
-    cout << string(120, '=') << "\n";
-    cout << string(38, ' ') << "BENCHMARK: LINKED LIST DELETE PERFORMANCE (IN-MEMORY)\n";
-    cout << string(120, '-') << "\n";
-    cout << "Dataset Size (from CSV loaded in memory): " << passengerCount << "\n";
-    cout << "Ops per scenario (requested): " << BENCHMARK_OPS << "\n";
-    cout << "Ops used for HIT scenarios (cannot exceed size): " << opsHit << "\n";
-    cout << "Note: CSV is NOT modified. No seat map updates. No user input. No file I/O.\n";
-    cout << "Note: HIT simulates delete-by-ID = linear scan by passengerId then relink.\n";
-    cout << string(120, '-') << "\n";
+    cout << string(120, '=') << endl;
+    cout << string(38, ' ') << "BENCHMARK: LINKED LIST DELETE PERFORMANCE (IN-MEMORY)" << endl;
+    cout << string(120, '-') << endl;
+    cout << "Dataset Size (from CSV loaded in memory): " << passengerCount << endl;
+    cout << "Ops per scenario (requested): " << BENCHMARK_OPS << endl;
+    cout << "Ops used for HIT scenarios (cannot exceed size): " << opsHit << endl;
+    cout << "Note: CSV is NOT modified. No seat map updates. No user input. No file I/O." << endl;
+    cout << "Note: HIT simulates delete-by-ID = linear scan by passengerId then relink." << endl;
+    cout << string(120, '-') << endl;
 
     cout << left
-         << setw(28) << "Scenario"
-         << setw(18) << "Total Time (ms)"
-         << setw(18) << "Avg Time (ns/op)"
-         << setw(22) << "Avg Traversal Steps"
-         << setw(16) << "Avg Shifts"
-         << setw(10) << "Frees"
-         << setw(10) << "Result"
-         << "\n";
-    cout << string(120, '-') << "\n";
+        << setw(28) << "Scenario"
+        << setw(18) << "Total Time (ms)"
+        << setw(18) << "Avg Time (ns/op)"
+        << setw(22) << "Avg Traversal Steps"
+        << setw(16) << "Avg Shifts"
+        << setw(10) << "Frees"
+        << setw(10) << "Result"
+        << endl;
+    cout << string(120, '-') << endl;
 
-    // Clone original once (so we don't modify sHead)
+    //clone original list for benchmark
     SNode* originalHead = cloneList(sHead);
 
-    // Collect ALL IDs once into a dynamic array (no vector)
+    //for target selection
     string* ids = new string[passengerCount];
     {
         SNode* cur = originalHead;
@@ -160,42 +171,43 @@ void LinkedListSystem::deleteBenchmark() {
         }
     }
 
-    // Precompute random order indices once (no vector)
+    //permutation for random deletion target
     int* perm = new int[passengerCount];
     for (int i = 0; i < passengerCount; i++) perm[i] = i;
 
-    srand(12345);            // fixed seed for report reproducibility
+    srand(12345);
     shuffleIntArray(perm, passengerCount);
 
-    auto runScenario = [&](const string& name,
-                           bool headScenario,
-                           bool randomScenario,
-                           bool tailScenario,
-                           bool missScenario) {
+    //benchmark scenario
+    auto runScenario = [&](const string& name, bool headScenario, bool randomScenario, bool tailScenario, bool missScenario) {
 
+        //copy list
         SNode* head = cloneList(originalHead);
 
+        //metrics
         long long totalSteps = 0;
-        long long totalShifts = 0; // always 0 for linked list, kept for UI match
+        long long totalShifts = 0;
         int frees = 0;
 
+        //start timer
         auto start = high_resolution_clock::now();
 
         if (!missScenario) {
             for (int op = 0; op < opsHit; op++) {
-                // Choose targetId WITHOUT traversing the working list
-                // (targets come from pre-collected ids[] to keep selection cost out)
+                //select id based on scenario
                 const string& targetId =
-                    headScenario  ? ids[op] :
-                    tailScenario  ? ids[passengerCount - 1 - op] :
-                    /*random*/      ids[perm[op]];
+                    headScenario  ? ids[op] :   //delete head
+                    tailScenario  ? ids[passengerCount - 1 - op] : //delete tail
+                    ids[perm[op]];  //delete random
 
                 int steps = 0;
+
                 bool ok = deleteByIdInMemory(head, targetId, steps);
                 totalSteps += steps;
                 if (ok) frees++;
             }
         } else {
+            //miss case
             const string missId = "NON_EXISTENT_ID_999999";
             for (int op = 0; op < BENCHMARK_OPS; op++) {
                 int steps = 0;
@@ -205,100 +217,43 @@ void LinkedListSystem::deleteBenchmark() {
             }
         }
 
+        //stop timer
         auto stop = high_resolution_clock::now();
+        //calculate duration
         double ms = duration<double, milli>(stop - start).count();
 
         int denom = missScenario ? BENCHMARK_OPS : (opsHit > 0 ? opsHit : 1);
-        double avgNs = (ms * 1e6) / denom;
+        double avgNs = (ms * 1000000.0) / denom;
         double avgSteps = (double)totalSteps / denom;
         double avgShifts = (double)totalShifts / denom;
 
         cout << left
-             << setw(28) << name
-             << setw(18) << fixed << setprecision(3) << ms
-             << setw(18) << fixed << setprecision(2) << avgNs
-             << setw(22) << fixed << setprecision(2) << avgSteps
-             << setw(16) << fixed << setprecision(2) << avgShifts
-             << setw(10) << frees
-             << setw(10) << "Done"
-             << "\n";
+            << setw(28) << name
+            << setw(18) << fixed << setprecision(3) << ms
+            << setw(18) << fixed << setprecision(2) << avgNs
+            << setw(22) << fixed << setprecision(2) << avgSteps
+            << setw(16) << fixed << setprecision(2) << avgShifts
+            << setw(10) << frees
+            << setw(10) << "Done"
+            << endl;
 
         deleteList(head);
     };
 
-    runScenario("Delete HIT (Head)",   true,  false, false, false);
-    runScenario("Delete HIT (Random)", false, true,  false, false);
-    runScenario("Delete HIT (Tail)",   false, false, true,  false);
-    runScenario("Delete MISS",         false, false, false, true);
+    //run scenario
+    runScenario("Delete HIT (Head)", true,  false, false, false);
+    runScenario("Delete HIT (Random)", false, true, false, false);
+    runScenario("Delete HIT (Tail)", false, false, true, false);
+    runScenario("Delete MISS", false, false, false, true);
 
+    //free memory
     delete[] perm;
     delete[] ids;
     deleteList(originalHead);
 
-    cout << string(120, '=') << "\n";
+    cout << string(120, '=') << endl;
     waitForEnter();
 }
-
-//delete by row and column
-//single linked list
-/*void LinkedListSystem::deleteBySeatSingle(string row, string column) {
-    if (sHead == nullptr) {
-        cout << "List is empty." << endl;
-        return;
-    }
-
-    auto start = high_resolution_clock::now();
-    int nodesVisited = 0;
-
-    nodesVisited++;
-    if (sHead->data.seatRow == row && sHead->data.seatColumn == column) {
-        SNode* temp = sHead;
-        sHead = sHead->next; 
-
-        if (sHead == nullptr) {
-            sTail = nullptr;
-        }
-
-        delete temp;
-
-        auto stop = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(stop - start);
-        
-        cout << "Seat " << row << column << " freed (was Head)." << endl;
-        cout << "[Performance] Time: " << duration.count() << " us | Nodes Visited: " << nodesVisited << endl;
-        return;
-    }
-
-    SNode* current = sHead;
-    while (current->next != nullptr) {
-        nodesVisited++;
-        if (current->next->data.seatRow == row && current->next->data.seatColumn == column) {
-            SNode* nodeToDelete = current->next;
-            
-            current->next = nodeToDelete->next;
-
-            if (nodeToDelete == sTail) {
-                sTail = current; 
-            }
-
-            delete nodeToDelete;
-
-            auto stop = high_resolution_clock::now();
-            auto duration = duration_cast<microseconds>(stop - start);
-
-            cout << "Seat " << row << column << " freed." << endl;
-            cout << "[Performance] Time: " << duration.count() << " us | Nodes Visited: " << nodesVisited << endl;
-            return;
-        }
-        current = current->next;
-    }
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-
-    cout << "Seat " << row << column << " not found." << endl;
-    cout << "[Performance] Time: " << duration.count() << " us | Nodes Visited: " << nodesVisited << endl;
-}
-*/
 
 //interface function to choose deletion method
 void LinkedListSystem::deletePassenger() {

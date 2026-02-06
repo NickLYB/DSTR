@@ -1,4 +1,4 @@
-PassengerID,Name,SeatRow,SeatCol,Class
+PassengerID,Name,SeatRow,SeatColumn,FlightClass
 100000,Carol Williams,117,A,Business
 100001,Ryan White,401,Q,Economy
 100002,Jack Jones,118,R,Business
@@ -9998,3 +9998,4 @@ PassengerID,Name,SeatRow,SeatCol,Class
 109997,Grace Williams,127,W,Business
 109998,Eve Jones,231,R,Economy
 109999,Grace Davis,55,R,First
+110000,asd,211,C,Economy

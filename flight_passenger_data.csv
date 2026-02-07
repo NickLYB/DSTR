@@ -998,7 +998,6 @@ PassengerID,Name,SeatRow,SeatColumn,FlightClass
 100997,Sara Taylor,193,N,Business
 100998,David Thomas,119,F,Business
 100999,Kate Thomas,222,X,Economy
-101000,Frank Brown,128,N,Business
 101001,Henry Harris,28,T,First
 101002,Ryan Martinez,309,H,Economy
 101003,Henry Harris,23,Y,First
@@ -1998,7 +1997,6 @@ PassengerID,Name,SeatRow,SeatColumn,FlightClass
 101997,Eve Taylor,419,Q,Economy
 101998,Henry Martinez,267,S,Economy
 101999,Kate White,361,D,Economy
-102000,Henry Taylor,219,Q,Economy
 102001,Kate Rodriguez,87,E,Business
 102002,Henry Wilson,134,H,Business
 102003,Sara Williams,457,J,Economy
@@ -3998,7 +3996,6 @@ PassengerID,Name,SeatRow,SeatColumn,FlightClass
 103997,Carol Thomas,319,K,Economy
 103998,Kate Brown,283,Z,Economy
 103999,Sara Williams,391,O,Economy
-104000,Ryan White,322,P,Economy
 104001,Ryan Garcia,356,I,Economy
 104002,Frank Martin,124,D,Business
 104003,Noah Jones,142,Z,Business
@@ -9997,5 +9994,3 @@ PassengerID,Name,SeatRow,SeatColumn,FlightClass
 109996,Sara Rodriguez,268,M,Economy
 109997,Grace Williams,127,W,Business
 109998,Eve Jones,231,R,Economy
-109999,Grace Davis,55,R,First
-110000,asd,211,C,Economy

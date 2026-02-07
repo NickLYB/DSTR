@@ -10,8 +10,7 @@
 using namespace std;
 using namespace std::chrono;
 
-
-// helper
+// helper function
 bool isStringNumeric(const string& str) {
     if (str.empty()) return false;
     for (char c : str) {
@@ -20,10 +19,28 @@ bool isStringNumeric(const string& str) {
     return true;
 }
 
-// binary Search
+int runLinearSearch(Passenger** list, int size, string target, int choice) {
+    int count = 0;
+    for (int i = 0; i < size; i++) {
+        if (choice == 1) {
+            // search by passenger ID
+            if (list[i]->passengerId == target) {
+                count++;
+            }
+        } else {
+            // search by passenger name
+            if (list[i]->name.find(target) != string::npos) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// binary search
 int binarySearch(Passenger** list, int low, int high, string target) {
     while (low <= high) {
-        int mid = low + (high - low) / 2; // calculate middle index
+        int mid = low + (high - low) / 2;
 
         if (list[mid]->passengerId == target) return mid;
 
@@ -35,7 +52,7 @@ int binarySearch(Passenger** list, int low, int high, string target) {
     return -1;
 }
 
-// exponential Search
+// exponential search
 int runExponentialSearch(Passenger** list, int size, string target) {
     if (size == 0) return 0;
 
@@ -49,8 +66,7 @@ int runExponentialSearch(Passenger** list, int size, string target) {
         i = i * 2;
     }
 
-    // 3.binary Search
-    // search in the range
+    // 3.binary Search in the found range
     int index = binarySearch(list, i / 2, min(i, size - 1), target);
 
     // 4.return result
@@ -63,7 +79,7 @@ void ArraySystem::searchPassenger() {
     do {
         clearScreen();
         cout << "=============================" << endl;
-        cout << "     Search for Passenger   " << endl;
+        cout << "     Search for Passenger    " << endl;
         cout << "=============================" << endl;
         cout << "1. Passenger ID" << endl;
         cout << "2. Passenger Name" << endl;
@@ -90,6 +106,7 @@ void ArraySystem::searchPassenger() {
             string searchTerm;
 
             if (choice == 1) {
+                // search by passenger ID
                 while (true) {
                     cout << endl << "Enter Passenger ID (6 digits): ";
                     getline(cin, searchTerm);
@@ -97,6 +114,7 @@ void ArraySystem::searchPassenger() {
                     cout << "Error: Invalid ID. Must be exactly 6 digits." << endl;
                 }
             } else {
+                // search by passenger Name
                 while (true) {
                     cout << endl << "Enter Passenger Name (Full Name/Part of Name): ";
                     getline(cin, searchTerm);
@@ -108,13 +126,8 @@ void ArraySystem::searchPassenger() {
             int foundCount = 0;
             bool anyFound = false;
 
-            // check if record exist or not
-            for (int i = 0; i < passengerCount; i++) {
-                if (choice == 1) {
-                    if (passengerList[i]->passengerId == searchTerm) { anyFound = true; break; }
-                } else {
-                    if (passengerList[i]->name.find(searchTerm) != string::npos) { anyFound = true; break; }
-                }
+            if (runLinearSearch(passengerList, passengerCount, searchTerm, choice) > 0) {
+                anyFound = true;
             }
 
             if (!anyFound) {
@@ -122,7 +135,7 @@ void ArraySystem::searchPassenger() {
             } else {
                 cout << endl;
                 cout << "=======================================================================" << endl;
-                cout << "                     Passenger Reservation Details                 " << endl;
+                cout << "                      Passenger Reservation Details                    " << endl;
                 cout << "=======================================================================" << endl;
                 cout << left << setw(5)  << "No."
                              << setw(15) << "Passenger ID"
@@ -134,8 +147,10 @@ void ArraySystem::searchPassenger() {
                 for (int i = 0; i < passengerCount; i++) {
                     bool match = false;
                     if (choice == 1) {
+                        // search by passenger ID
                         if (passengerList[i]->passengerId == searchTerm) match = true;
                     } else {
+                        // search by passenger name
                         if (passengerList[i]->name.find(searchTerm) != string::npos) match = true;
                     }
 
@@ -155,6 +170,7 @@ void ArraySystem::searchPassenger() {
                 cout << "Total Orders: " << foundCount << endl;
             }
 
+            // option to benchmark
             char benchChoice;
             while (true) {
                 cout << endl << "Search Complete. Wanting to benchmark search times? (Y/N): ";
@@ -167,20 +183,18 @@ void ArraySystem::searchPassenger() {
             }
 
             if (benchChoice == 'Y') {
-                const int ITERATIONS = 10000; // run 10000 times for measurable time
+                const int ITERATIONS = 10000;
                 using DoubleMs = duration<double, std::milli>;
-                volatile int sink = 0;
+                volatile int sink = 0; // prevents compiler optimization
 
-                // memory estimations
+                // memory estimation
                 const size_t memLinear = sizeof(int) + sizeof(bool);
                 const size_t memExpo = (sizeof(int) * 5) + sizeof(string);
-
                 clearScreen();
-
 
                 cout << (choice == 1 ? "Target ID: " : "Target Name: ") << searchTerm << endl;
                 cout << "=================================================================================================================" << endl;
-                cout << "                                BENCHMARK: SEARCH PERFORMANCE (" << ITERATIONS << " ITERATIONS)                          " << endl;
+                cout << "                                BENCHMARK: SEARCH PERFORMANCE (" << ITERATIONS << " ITERATIONS)                                  " << endl;
                 cout << "=================================================================================================================" << endl;
                 cout << left << setw(30) << "Algorithm"
                      << setw(20) << "Matches Found"
@@ -189,6 +203,7 @@ void ArraySystem::searchPassenger() {
                      << setw(20) << "Est. Memory (Stack)" << endl;
                 cout << "-----------------------------------------------------------------------------------------------------------------" << endl;
 
+                // helper lambda to print a benchmark row
                 auto printRow = [&](const string& algo, int matches, double totalMs, size_t memBytes) {
                     double avgMs = totalMs / ITERATIONS;
                     cout << left << setw(30) << algo
@@ -198,37 +213,36 @@ void ArraySystem::searchPassenger() {
                          << setw(20) << memBytes << "\n";
                 };
 
-
-                // benchmark linear search
+                // benchmark 1: linear search
                 int matchCountLin = 0;
                 auto start = high_resolution_clock::now();
+
                 for(int k=0; k<ITERATIONS; k++) {
-                    matchCountLin = 0;
-                    for (int i = 0; i < passengerCount; i++) {
-                        if (choice == 1) {
-                            if (passengerList[i]->passengerId == searchTerm) matchCountLin++;
-                        } else {
-                            if (passengerList[i]->name.find(searchTerm) != string::npos) matchCountLin++;
-                        }
-                    }
-                    sink += matchCountLin;
+                    // call linear search
+                    matchCountLin = runLinearSearch(passengerList, passengerCount, searchTerm, choice);
+                    sink += matchCountLin; // prevent code removal optimization
                 }
+
                 auto end = high_resolution_clock::now();
                 DoubleMs dur = end - start;
                 printRow("Linear Search", matchCountLin, dur.count(), memLinear);
 
-                // benchmark exponential search
+                // benchmark 2: exponential search
                 if (choice == 1) {
                     Passenger** sortedList = new Passenger*[passengerCount];
                     for(int i=0; i<passengerCount; i++) sortedList[i] = passengerList[i];
 
+                    // sort by passenger ID
                     sort(sortedList, sortedList + passengerCount, [choice](Passenger* a, Passenger* b) {
                         return a->passengerId < b->passengerId;
                     });
 
+                    // run benchmark loop
                     int matchCountExpo = 0;
                     start = high_resolution_clock::now();
+
                     for(int k=0; k<ITERATIONS; k++) {
+                         // call exponential search
                          matchCountExpo = runExponentialSearch(sortedList, passengerCount, searchTerm);
                          sink += matchCountExpo;
                     }
@@ -236,22 +250,19 @@ void ArraySystem::searchPassenger() {
                     dur = end - start;
                     printRow("Exponential Search", matchCountExpo, dur.count(), memExpo);
 
-                    delete[] sortedList;
+                    delete[] sortedList; // clean up sorted list memory
                 }
-
                 cout << "-----------------------------------------------------------------------------------------------------------------" << endl;
                 cout << "N (nodes): " << passengerCount << endl;
                 cout << "Note: Est. Stack (bytes) counts only local stack objects (sizeof)." << endl;
                 cout << "=================================================================================================================" << endl;
                 (void)sink;
             }
-
             waitForEnter();
 
         } else {
             cout << "Invalid choice. Please select again." << endl;
             waitForEnter();
         }
-
     } while (choice != 0);
 }

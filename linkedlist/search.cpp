@@ -182,7 +182,7 @@ bool SkipList::searchElement(const string& key, bool showResult) const { //searc
     //candidate node at level 0
     current = current->forward[0];
 
-    
+
     if (current != nullptr &&
         current->passenger != nullptr &&
         current->passenger->passengerId == key) {
@@ -442,8 +442,8 @@ void LinkedListSystem::benchmarkSearchName(SNode* head, string name){
     cout << "=================================================================================================================" << endl;
     (void)sink;
 }
-//interface
 
+//interface
 void LinkedListSystem::searchPassenger() {
     int choice;
     do{
